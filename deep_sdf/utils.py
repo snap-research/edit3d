@@ -3,6 +3,7 @@
 
 import torch
 
+
 def decode_sdf(decoder, latent_vector, queries):
     num_samples = queries.shape[0]
 
@@ -15,6 +16,7 @@ def decode_sdf(decoder, latent_vector, queries):
     sdf = decoder(inputs)
 
     return sdf
+
 
 # based on the customized colorsdf network
 def decode_colorsdf(decoder, latent_vector, queries):
@@ -34,6 +36,5 @@ def decode_colorsdf2(deepsdf, colorsdf, shape_code, color_code, queries):
     sdf, shape_feats = deepsdf(inputs)
     inputs2 = torch.cat([color_codes, shape_feats, queries], dim=-1)
     color3d = colorsdf(inputs2)
-    color3d = color3d[:, [2,1,0]]
+    color3d = color3d[:, [2, 1, 0]]
     return sdf, color3d
-

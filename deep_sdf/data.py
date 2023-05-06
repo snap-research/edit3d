@@ -40,7 +40,7 @@ class NoMeshFileError(RuntimeError):
 
 
 class MultipleMeshFileError(RuntimeError):
-    """"Raised when a there a multiple mesh files in a shape directory"""
+    """ "Raised when a there a multiple mesh files in a shape directory"""
 
     pass
 

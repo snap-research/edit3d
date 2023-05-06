@@ -20,6 +20,8 @@ python train.py ./config/airplane_train.yaml --logdir /path/to/save/output
 
 ### Demo 
 
+#### Setup
+
 Download Pretrained models: [ShapeNet Chairs](https://www.dropbox.com/s/teez91j76d1pssf/chairs_epoch_2799_iters_280000.pth?dl=0), [ShapeNet Airplanes](https://www.dropbox.com/s/trj8777psawq7dt/airplanes_epoch_2799_iters_156800.pth?dl=0)
 
 [./examples](./examples) contains data samples that were used for the following applications of our model. 

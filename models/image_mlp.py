@@ -3,11 +3,12 @@ import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
 
+
 class Decoder(nn.Module):
     def __init__(self, cfg):
         super(Decoder, self).__init__()
         self.fc0 = nn.Linear(cfg.in_ch, cfg.hidden_ch)
-        self.fc1 = nn.Linear(cfg.hidden_ch,cfg.hidden_ch)
+        self.fc1 = nn.Linear(cfg.hidden_ch, cfg.hidden_ch)
         self.fc2 = nn.Linear(cfg.hidden_ch, cfg.out_ch)
         self.imsize = int(np.sqrt(cfg.out_ch))
 

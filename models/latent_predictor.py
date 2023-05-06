@@ -4,6 +4,7 @@ import torch.nn as nn
 import numpy as np
 from models.resnet import resnet18
 
+
 class MLP(nn.Module):
     def __init__(self, in_ch, hidden_ch, out_ch):
         super(MLP, self).__init__()
@@ -19,31 +20,15 @@ class MLP(nn.Module):
 
 
 class LatentNN(nn.Module):
-    
     def __init__(self, latent_dim):
         super(LatentNN, self).__init__()
         self.imagenn = resnet18(in_channel=6, low_dim=latent_dim)
         # assume the outptu of imagenn is same as the dim of latent code
-        self.mlp = MLP(latent_dim*2, latent_dim*2, latent_dim)
-        
+        self.mlp = MLP(latent_dim * 2, latent_dim * 2, latent_dim)
+
     def forward(self, image, init_latent):
-        
+
         im_latent = self.imagenn(image)
         joint_latent = torch.cat([im_latent, init_latent], dim=-1)
         delta_latent = self.mlp(joint_latent)
         return delta_latent + joint_latent
-
-
-
-
-
-
-
-
-
-
-
-
-   
-
-    

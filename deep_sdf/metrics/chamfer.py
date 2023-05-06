@@ -22,7 +22,7 @@ def compute_trimesh_chamfer(gt_points, gen_mesh, num_mesh_samples=30000):
     mesh_max = np.amax(gt_points_np, axis=0)
     mesh_min = np.amin(gt_points_np, axis=0)
     mesh_center = (mesh_max + mesh_min) / 2
-    max_dist = np.sqrt(np.max(np.sum(gt_points_np**2, axis=-1)))
+    max_dist = np.sqrt(np.max(np.sum(gt_points_np ** 2, axis=-1)))
     mesh_scale = 1.0 / max_dist
 
     gen_points_sampled = trimesh.sample.sample_surface(gen_mesh, num_mesh_samples)[0]
