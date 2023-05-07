@@ -50,38 +50,25 @@ class Trainer(CrossModalTrainer):
         latent_codes_coarse_shape, latent_codes_fine_shape, kld = self._b_idx2latent(
             self.latent_embeddings_shape, data_indices, num_augment_pts=1
         )  # [64 128]
-        loss_kld_shape = torch.mean(
-            0.5 * torch.mean(latent_codes_coarse_shape ** 2, dim=-1)
-        )
+        loss_kld_shape = torch.mean(0.5 * torch.mean(latent_codes_coarse_shape ** 2, dim=-1))
         self.stats_loss_kld_shape = loss_kld_shape.item()
         # color
         latent_codes_coarse_color, latent_codes_fine_color, kld = self._b_idx2latent(
             self.latent_embeddings_color, data_indices, num_augment_pts=1
         )  # [64 128]
-        loss_kld_color = torch.mean(
-            0.5 * torch.mean(latent_codes_coarse_color ** 2, dim=-1)
-        )
+        loss_kld_color = torch.mean(0.5 * torch.mean(latent_codes_coarse_color ** 2, dim=-1))
         self.stats_loss_kld_color = loss_kld_color.item()
         return latent_codes_coarse_shape, latent_codes_coarse_color
 
-    def manip_fun(
-        self, x, target, mask, feat, gamma=0.02, beta=0.5, alphas=[1.0, 1.0, 0.0]
-    ):
+    def manip_fun(self, x, target, mask, feat, gamma=0.02, beta=0.5, alphas=[1.0, 1.0, 0.0]):
         loss_kld = torch.mean(0.5 * torch.mean(feat ** 2, dim=-1))
         loss_kld = gamma * (torch.clamp(loss_kld, beta, None) - beta)
-        loss_man = (
-            alphas[0] * torch.mean(torch.abs(x - target) * mask.to(x.device))
-            + alphas[1] * loss_kld
-        )
+        loss_man = alphas[0] * torch.mean(torch.abs(x - target) * mask.to(x.device)) + alphas[1] * loss_kld
         return loss_man, loss_kld
 
     def sample_latent_gaussian(self, num_pts):
-        latent_codes_coarse_color = self.latent_embeddings_color.random_sample_gaussian(
-            num_pts
-        )
-        latent_codes_coarse_shape = self.latent_embeddings_shape.random_sample_gaussian(
-            num_pts
-        )
+        latent_codes_coarse_color = self.latent_embeddings_color.random_sample_gaussian(num_pts)
+        latent_codes_coarse_shape = self.latent_embeddings_shape.random_sample_gaussian(num_pts)
         return (
             latent_codes_coarse_shape["latent_code"],
             latent_codes_coarse_color["latent_code"],
@@ -99,12 +86,8 @@ class Trainer(CrossModalTrainer):
     ):
         if mask == None:
             mask = torch.ones_like(target)
-        latent_codes_coarse = (
-            feat_shape.to(self.device).clone().detach().requires_grad_(True)
-        )
-        optim, lrscheduler = self._get_optim(
-            [latent_codes_coarse], self.cfg.manip.optim
-        )
+        latent_codes_coarse = feat_shape.to(self.device).clone().detach().requires_grad_(True)
+        optim, lrscheduler = self._get_optim([latent_codes_coarse], self.cfg.manip.optim)
         target = target.to(self.device)
         mask = mask.to(self.device)
         latent_codes = []
@@ -130,18 +113,10 @@ class Trainer(CrossModalTrainer):
             latent_codes.append(latent_codes_coarse.detach().clone())
         return latent_codes, loss_manip
 
-    def step_manip_color(
-        self, feat_shape, feat_color, target, mask, alphas=[1.0, 1.0, 0.0]
-    ):
-        latent_codes_color = (
-            feat_color.to(self.device).clone().detach().requires_grad_(True)
-        )
-        latent_codes_shape = (
-            feat_shape.to(self.device).clone().detach().requires_grad_(False)
-        )
-        optim, lrscheduler = self._get_optim(
-            [latent_codes_color], self.cfg.manip.optim_rgb
-        )
+    def step_manip_color(self, feat_shape, feat_color, target, mask, alphas=[1.0, 1.0, 0.0]):
+        latent_codes_color = feat_color.to(self.device).clone().detach().requires_grad_(True)
+        latent_codes_shape = feat_shape.to(self.device).clone().detach().requires_grad_(False)
+        optim, lrscheduler = self._get_optim([latent_codes_color], self.cfg.manip.optim_rgb)
         latent_codes = []
         for param in self.colorgen_net.parameters():
             param.requires_grad = False
@@ -150,9 +125,7 @@ class Trainer(CrossModalTrainer):
         for i in range(1000):
             optim.zero_grad()
             color_2d = self.forward_color2d_grad(latent_codes_color, latent_codes_shape)
-            loss_manip = self.manip_fun(
-                color_2d, target, mask, latent_codes_color, alphas=alphas
-            )
+            loss_manip = self.manip_fun(color_2d, target, mask, latent_codes_color, alphas=alphas)
             loss_manip.backward()
             optim.step()
             latent_codes.append(latent_codes_color.detach().clone())
@@ -163,9 +136,7 @@ class Trainer(CrossModalTrainer):
         loss_kld = gamma * (torch.clamp(loss_kld, beta, None) - beta)
         loss_kld2 = torch.mean(0.5 * torch.mean(feat_color ** 2, dim=-1))
         loss_kld2 = gamma * (torch.clamp(loss_kld2, beta, None) - beta)
-        loss_man = (
-            torch.mean(torch.abs(x - target) * mask.to(x.device)) + loss_kld + loss_kld2
-        )
+        loss_man = torch.mean(torch.abs(x - target) * mask.to(x.device)) + loss_kld + loss_kld2
         return loss_man, loss_kld, loss_kld2
 
     def step_recon_rgb(
@@ -181,15 +152,9 @@ class Trainer(CrossModalTrainer):
         if mask == None:
             mask = torch.ones_like(target)
         mask = mask.to(self.device)
-        latent_codes_color = (
-            feat_color.to(self.device).clone().detach().requires_grad_(True)
-        )
-        latent_codes_shape = (
-            feat_shape.to(self.device).clone().detach().requires_grad_(True)
-        )
-        optim, lrscheduler = self._get_optim(
-            [latent_codes_shape, latent_codes_color], self.cfg.manip.optim_rgb
-        )
+        latent_codes_color = feat_color.to(self.device).clone().detach().requires_grad_(True)
+        latent_codes_shape = feat_shape.to(self.device).clone().detach().requires_grad_(True)
+        optim, lrscheduler = self._get_optim([latent_codes_shape, latent_codes_color], self.cfg.manip.optim_rgb)
         latent_codes = []
         for param in self.colorgen_net.parameters():
             param.requires_grad = False
@@ -231,16 +196,10 @@ class Trainer(CrossModalTrainer):
         if mask == None:
             mask = torch.ones_like(target)
         mask = mask.to(self.device)
-        latent_codes_shape = (
-            feat_shape.to(self.device).clone().detach().requires_grad_(False)
-        )
-        latent_codes_color = (
-            feat_color.to(self.device).clone().detach().requires_grad_(True)
-        )
+        latent_codes_shape = feat_shape.to(self.device).clone().detach().requires_grad_(False)
+        latent_codes_color = feat_color.to(self.device).clone().detach().requires_grad_(True)
         # self.cfg.manip.optim_rgb.lr = 0.0001
-        optim, lrscheduler = self._get_optim(
-            [latent_codes_color], self.cfg.manip.optim_rgb
-        )
+        optim, lrscheduler = self._get_optim([latent_codes_color], self.cfg.manip.optim_rgb)
         latent_codes = []
         for param in self.colorgen_net.parameters():
             param.requires_grad = False
@@ -269,20 +228,12 @@ class Trainer(CrossModalTrainer):
             )
         return latent_codes, loss_recon
 
-    def step_edit_sketch(
-        self, feat_shape, feat_color, target, epoch=1001, gamma=0.02, beta=0.5
-    ):
+    def step_edit_sketch(self, feat_shape, feat_color, target, epoch=1001, gamma=0.02, beta=0.5):
         mask = torch.ones_like(target)
         mask = mask.to(self.device)
-        latent_codes_shape = (
-            feat_shape.to(self.device).clone().detach().requires_grad_(True)
-        )
-        latent_codes_color = (
-            feat_color.to(self.device).clone().detach().requires_grad_(False)
-        )
-        optim, lrscheduler = self._get_optim(
-            [latent_codes_shape], self.cfg.manip.optim_rgb
-        )
+        latent_codes_shape = feat_shape.to(self.device).clone().detach().requires_grad_(True)
+        latent_codes_color = feat_color.to(self.device).clone().detach().requires_grad_(False)
+        optim, lrscheduler = self._get_optim([latent_codes_shape], self.cfg.manip.optim_rgb)
         latent_codes = []
         for param in self.imgen_net.parameters():
             param.requires_grad = False
@@ -308,18 +259,12 @@ class Trainer(CrossModalTrainer):
 
         return latent_codes, loss_recon
 
-    def step_edit_sketch(
-        self, feat_shape, target, mask=None, gamma=0.02, beta=0.5, epoch=1001
-    ):
+    def step_edit_sketch(self, feat_shape, target, mask=None, gamma=0.02, beta=0.5, epoch=1001):
         if mask == None:
             mask = torch.ones_like(target)
         alphas = [1.0, 1.0, 0.0]
-        latent_codes_coarse = (
-            feat_shape.to(self.device).clone().detach().requires_grad_(True)
-        )
-        optim, lrscheduler = self._get_optim(
-            [latent_codes_coarse], self.cfg.manip.optim
-        )
+        latent_codes_coarse = feat_shape.to(self.device).clone().detach().requires_grad_(True)
+        optim, lrscheduler = self._get_optim([latent_codes_coarse], self.cfg.manip.optim)
         target = target.to(self.device)
         mask = mask.to(self.device)
         latent_codes = []
@@ -347,12 +292,8 @@ class Trainer(CrossModalTrainer):
 
     def step_clip_color(self, feat_shape, feat_color, text, gamma=0.02, beta=0.5):
         text_input = torch.cat([clip.tokenize(text)]).to(self.device)
-        latent_codes_color = (
-            feat_color.to(self.device).clone().detach().requires_grad_(True)
-        )
-        latent_codes_shape = (
-            feat_shape.to(self.device).clone().detach().requires_grad_(False)
-        )
+        latent_codes_color = feat_color.to(self.device).clone().detach().requires_grad_(True)
+        latent_codes_shape = feat_shape.to(self.device).clone().detach().requires_grad_(False)
         self.cfg.manip.optim.lr = 10
         self.cfg.manip.optim.lr_scheduler.initial = 10
         self.cfg.manip.optim.lr_scheduler.interval = 10
@@ -385,12 +326,8 @@ class Trainer(CrossModalTrainer):
 
     def step_clip_shape(self, feat_shape, feat_color, text, gamma=0.02, beta=0.5):
         text_input = torch.cat([clip.tokenize(text)]).to(self.device)
-        latent_codes_color = (
-            feat_color.to(self.device).clone().detach().requires_grad_(False)
-        )
-        latent_codes_shape = (
-            feat_shape.to(self.device).clone().detach().requires_grad_(True)
-        )
+        latent_codes_color = feat_color.to(self.device).clone().detach().requires_grad_(False)
+        latent_codes_shape = feat_shape.to(self.device).clone().detach().requires_grad_(True)
         self.cfg.manip.optim.lr_scheduler.initial = self.cfg.manip.optim.lr = 5
         self.cfg.manip.optim.lr_scheduler.interval = 20
         self.cfg.manip.optim.lr_scheduler.factor = 0.5
@@ -412,12 +349,8 @@ class Trainer(CrossModalTrainer):
             color_2d = self.forward_color2d_grad(latent_codes_color, latent_codes_shape)
             loss_kld = torch.mean(0.5 * torch.mean(latent_codes_shape ** 2, dim=-1))
             loss_kld = gamma * (torch.clamp(loss_kld, beta, None) - beta)
-            loss_l2 = MSE(
-                latent_codes_shape, feat_shape.to(self.device).clone().detach()
-            )
-            loss_manip = (
-                self.clip_loss(color_2d, text_input) + loss_kld + 0.01 * loss_l2
-            )
+            loss_l2 = MSE(latent_codes_shape, feat_shape.to(self.device).clone().detach())
+            loss_manip = self.clip_loss(color_2d, text_input) + loss_kld + 0.01 * loss_l2
             loss_manip.backward()
             optim.step()
             lr = step_lr(i, optim, lrscheduler)
@@ -443,9 +376,7 @@ class Trainer(CrossModalTrainer):
             renderer = SDFRenderer(self.cfg.render_web, self.device, colorize)
         self.eval()
         with torch.no_grad():
-            sdf_fun, _ = self._get_render_sdfs(
-                latent_codes_fine_shape, latent_codes_fine_color
-            )
+            sdf_fun, _ = self._get_render_sdfs(latent_codes_fine_shape, latent_codes_fine_color)
             print("R", end="")
             img = renderer.render(sdf_fun, coloridx=None)
         return img
@@ -494,9 +425,7 @@ class Trainer(CrossModalTrainer):
         print("WebDemo Resuming {}...".format(ckpt_path))
         ckpt = torch.load(ckpt_path, map_location=self.device)
 
-        self.cfg.train_shape_ids = range(
-            ckpt["trainer_state_dict"]["latent_embeddings_shape.weight_mu"].shape[0]
-        )
+        self.cfg.train_shape_ids = range(ckpt["trainer_state_dict"]["latent_embeddings_shape.weight_mu"].shape[0])
         self.prep_train()
         self.load_state_dict(ckpt["trainer_state_dict"], strict=False)
         self.sid2idx = ckpt["shapeid2idx"]

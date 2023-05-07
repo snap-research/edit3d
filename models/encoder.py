@@ -41,9 +41,7 @@ class _BatchInstanceNorm(_BatchNorm):
         else:
             in_w = 1 - self.gate
         input = input.view(1, b * c, *input.size()[2:])
-        out_in = F.batch_norm(
-            input, None, None, None, None, True, self.momentum, self.eps
-        )
+        out_in = F.batch_norm(input, None, None, None, None, True, self.momentum, self.eps)
         out_in = out_in.view(b, c, *input.size()[2:])
         out_in.mul_(in_w[None, :, None, None])
 
@@ -53,9 +51,7 @@ class _BatchInstanceNorm(_BatchNorm):
 class BatchInstanceNorm1d(_BatchInstanceNorm):
     def _check_input_dim(self, input):
         if input.dim() != 2 and input.dim() != 3:
-            raise ValueError(
-                "expected 2D or 3D input (got {}D input)".format(input.dim())
-            )
+            raise ValueError("expected 2D or 3D input (got {}D input)".format(input.dim()))
 
 
 class BatchInstanceNorm2d(_BatchInstanceNorm):
@@ -66,9 +62,7 @@ class BatchInstanceNorm2d(_BatchInstanceNorm):
 
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
-    return nn.Conv2d(
-        in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False
-    )
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
 class BasicBlock(nn.Module):
@@ -110,9 +104,7 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = normlayer(planes)
-        self.conv2 = nn.Conv2d(
-            planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
-        )
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn2 = normlayer(planes)
         self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
         self.bn3 = normlayer(planes * 4)
@@ -144,9 +136,7 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(
-        self, latent_size, depth, basicblock=False, norm_type="bin", inputchannels=3
-    ):
+    def __init__(self, latent_size, depth, basicblock=False, norm_type="bin", inputchannels=3):
         super(ResNet, self).__init__()
         # Model type specifies number of layers for CIFAR-10 model
         assert (depth - 2) % 6 == 0, "depth should be 6n+2"
@@ -205,9 +195,7 @@ class ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(
-            block(self.inplanes, planes, stride, downsample, normlayer=self.normlayer)
-        )
+        layers.append(block(self.inplanes, planes, stride, downsample, normlayer=self.normlayer))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes, normlayer=self.normlayer))

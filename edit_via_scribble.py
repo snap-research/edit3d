@@ -173,17 +173,11 @@ def edit(trainer, init_latent, target, mask, epoch, trial, gamma, beta):
 def get_args():
     parser = argparse.ArgumentParser(description="Reconstruction")
     parser.add_argument("config", type=str, help="The configuration file.")
-    parser.add_argument(
-        "--pretrained", default=None, type=str, help="pretrained model checkpoint"
-    )
+    parser.add_argument("--pretrained", default=None, type=str, help="pretrained model checkpoint")
     parser.add_argument("--outdir", default=None, type=str, help="path of output")
-    parser.add_argument(
-        "--category", default="airplane", type=str, help="path of output"
-    )
+    parser.add_argument("--category", default="airplane", type=str, help="path of output")
     parser.add_argument("--imagelist", default=None, type=str, help="the dir of images")
-    parser.add_argument(
-        "--imagename", default=None, type=str, help="the name of target image"
-    )
+    parser.add_argument("--imagename", default=None, type=str, help="the name of target image")
     parser.add_argument("--mask", default=False, action="store_true")
     parser.add_argument("--ref-only", default=False, action="store_true")
     parser.add_argument("--mask-level", default=0.5, type=float)
@@ -338,9 +332,7 @@ def main(args, cfg):
     randdir = os.path.join(targetdir, "rand")
     os.makedirs(randdir, exist_ok=True)
     for k in range(30):
-        data = load_image_and_scribble(
-            source_path, target_path, part_list, use_target=False
-        )
+        data = load_image_and_scribble(source_path, target_path, part_list, use_target=False)
         source_latent = trainer.get_known_latent(trainer.sid2idx[imname])
         edit_latent = edit(
             trainer,

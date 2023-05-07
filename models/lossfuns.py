@@ -34,12 +34,8 @@ def onesided_l2(pred_dist, gt_dist):
     valid_mask = (gt_dist >= 0.0).float()
     num_valid = torch.sum(valid_mask, dim=-1)
     num_inside = valid_mask[0].numel() - num_valid
-    loss_valid = torch.sum((gt_dist - pred_dist) ** 2 * valid_mask, dim=-1) / (
-        num_valid + 1e-8
-    )
-    loss_inside = torch.sum(
-        torch.clamp(pred_dist, 0.0, None) * (1.0 - valid_mask), dim=-1
-    ) / (num_inside + 1e-8)
+    loss_valid = torch.sum((gt_dist - pred_dist) ** 2 * valid_mask, dim=-1) / (num_valid + 1e-8)
+    loss_inside = torch.sum(torch.clamp(pred_dist, 0.0, None) * (1.0 - valid_mask), dim=-1) / (num_inside + 1e-8)
 
     loss = loss_valid + loss_inside
     return loss

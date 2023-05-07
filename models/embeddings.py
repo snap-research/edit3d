@@ -15,11 +15,7 @@ class VADLogVar(nn.Module):
         self.weight_mu = nn.Parameter(torch.Tensor(N, dim))
         self.weight_logvar = nn.Parameter(torch.Tensor(N, dim))
         self.reset_parameters()
-        print(
-            "[VADLogVar Embedding] #entries: {}; #dims: {}; cfg: {}".format(
-                self.N, self.dim, self.cfg
-            )
-        )
+        print("[VADLogVar Embedding] #entries: {}; #dims: {}; cfg: {}".format(self.N, self.dim, self.cfg))
 
     def reset_parameters(self):
         if self.cfg.mu_init_std is None:
@@ -53,9 +49,7 @@ class VADLogVar(nn.Module):
             eps = torch.randn_like(std)
             batch_latent = mu + eps * std
             if self.cfg.augment_latent:
-                eps_aug = torch.randn(
-                    std.size(0), num_augment_pts, std.size(1), device=std.device
-                )
+                eps_aug = torch.randn(std.size(0), num_augment_pts, std.size(1), device=std.device)
                 batch_latent_aug = mu.unsqueeze(1) + eps_aug * std.unsqueeze(
                     1
                 )  # shape = (batch_sz, num_pts, latent_dim)
@@ -114,11 +108,7 @@ class AD(nn.Module):
         self.dim = dim
         self.embed_params = nn.Parameter(torch.Tensor(N, dim))
         self.reset_parameters()
-        print(
-            "[AD Embedding] #entries: {}; #dims: {}; cfg: {}".format(
-                self.N, self.dim, self.cfg
-            )
-        )
+        print("[AD Embedding] #entries: {}; #dims: {}; cfg: {}".format(self.N, self.dim, self.cfg))
 
     def reset_parameters(self):
         if self.cfg.init_std is None:

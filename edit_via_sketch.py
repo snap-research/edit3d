@@ -17,6 +17,7 @@ logging.basicConfig(level=logging.getLevelName(log_level))
 
 logger = logging.getLogger(__name__)
 
+
 def save(trainer, latent, target, outdir, imname, save_ply=False):
     """Save 2D and 3D modalities after editing"""
     colormesh_filename = os.path.join(outdir, imname)
@@ -139,9 +140,7 @@ def edit(trainer, init_latent, source, target, epoch, gamma, beta):
     since = time.time()
     init_shape, init_color = init_latent
     mask = get_mask(source, target)
-    latent, loss = trainer.step_edit_sketch(
-        init_shape, target, mask=mask, epoch=epoch, gamma=gamma, beta=beta
-    )
+    latent, loss = trainer.step_edit_sketch(init_shape, target, mask=mask, epoch=epoch, gamma=gamma, beta=beta)
     logger.info(f"Editing shape takes {time.time() - since} seconds")
     return latent, init_color  # here the latent contains multiple snapshot
 
@@ -149,16 +148,10 @@ def edit(trainer, init_latent, source, target, epoch, gamma, beta):
 def get_args():
     parser = argparse.ArgumentParser(description="Reconstruction")
     parser.add_argument("config", type=str, help="The configuration file.")
-    parser.add_argument(
-        "--pretrained", default=None, type=str, help="pretrained model checkpoint"
-    )
+    parser.add_argument("--pretrained", default=None, type=str, help="pretrained model checkpoint")
     parser.add_argument("--outdir", default=None, type=str, help="path of output")
-    parser.add_argument(
-        "--category", default="airplane", type=str, help="path of output"
-    )
-    parser.add_argument(
-        "--imagelist", default=None, type=str, help="a text file the lists image"
-    )
+    parser.add_argument("--category", default="airplane", type=str, help="path of output")
+    parser.add_argument("--imagelist", default=None, type=str, help="a text file the lists image")
     parser.add_argument("--trial", default=20, type=int)
     parser.add_argument("--editid", default=1, type=int)
     parser.add_argument("--beta", default=0.5, type=float)

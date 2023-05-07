@@ -53,9 +53,7 @@ class KeyNotFoundError(Exception):
         super().__init__(message)
 
 
-def retrieve(
-    list_or_dict, key, splitval="/", default=None, expand=True, pass_success=False
-):
+def retrieve(list_or_dict, key, splitval="/", default=None, expand=True, pass_success=False):
     """Given a nested list or dict return the desired value at key expanding
     callable nodes if necessary and :attr:`expand` is ``True``. The expansion
     is done in-place.
@@ -98,9 +96,7 @@ def retrieve(
             if callable(list_or_dict):
                 if not expand:
                     raise KeyNotFoundError(
-                        ValueError(
-                            "Trying to get past callable node with expand=False."
-                        ),
+                        ValueError("Trying to get past callable node with expand=False."),
                         keys=keys,
                         visited=visited,
                     )

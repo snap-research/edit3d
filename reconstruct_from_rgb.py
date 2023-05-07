@@ -21,17 +21,25 @@ device = torch.device(CUDA_DEVICE if torch.cuda.is_available() and os.getenv("US
 
 def save(trainer, latents, target, mask, outdir, imname):
     colormesh_filename = os.path.join(outdir, imname)
-    latent_filename = os.path.join(outdir, imname + '.pth')
-    pred_rgb_filename = os.path.join(outdir, imname + '_rgb.png')
-    pred_sketch_filename = os.path.join(outdir, imname + '_sketch.png')
-    pred_3D_filename = os.path.join(outdir, imname + '_3D.png')
-    target_filename = os.path.join(outdir, imname + '_target.png')
-    masked_target_filename = os.path.join(outdir, imname + '_masked_target.png')
+    latent_filename = os.path.join(outdir, imname + ".pth")
+    pred_rgb_filename = os.path.join(outdir, imname + "_rgb.png")
+    pred_sketch_filename = os.path.join(outdir, imname + "_sketch.png")
+    pred_3D_filename = os.path.join(outdir, imname + "_3D.png")
+    target_filename = os.path.join(outdir, imname + "_target.png")
+    masked_target_filename = os.path.join(outdir, imname + "_masked_target.png")
     shape_code, color_code = latents
     with torch.no_grad():
-        deep_sdf.colormesh.create_mesh(trainer.deepsdf_net, trainer.colorsdf_net, 
-            shape_code, color_code, colormesh_filename, N=256, max_batch=int(2 ** 18), device=device)
-    
+        deep_sdf.colormesh.create_mesh(
+            trainer.deepsdf_net,
+            trainer.colorsdf_net,
+            shape_code,
+            color_code,
+            colormesh_filename,
+            N=256,
+            max_batch=int(2 ** 18),
+            device=device,
+        )
+
     torch.save(latents, latent_filename)
     pred_rgb = trainer.render_color2d(color_code, shape_code)
     save_image(pred_rgb, pred_rgb_filename)
@@ -181,6 +189,7 @@ def main(args, cfg):
     except Exception:
         logger.error("Could not save output.", exc_info=True)
 
+
 def dict2namespace(config):
     namespace = argparse.Namespace()
     for key, value in config.items():
@@ -195,9 +204,7 @@ def dict2namespace(config):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Reconstruction")
     parser.add_argument("config", type=str, help="The configuration file.")
-    parser.add_argument(
-        "--pretrained", default=None, type=str, help="pretrained model checkpoint"
-    )
+    parser.add_argument("--pretrained", default=None, type=str, help="pretrained model checkpoint")
     parser.add_argument("--outdir", default=None, type=str, help="path of output")
     parser.add_argument("--impath", default=None, type=str, help="path of an image")
     parser.add_argument("--mask", default=False, action="store_true")
