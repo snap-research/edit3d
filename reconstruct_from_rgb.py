@@ -14,7 +14,10 @@ log_level = os.getenv("LOG_LEVEL", "INFO")
 logging.basicConfig(level=logging.getLevelName(log_level))
 
 logger = logging.getLogger(__name__)
-device = torch.device("cuda:0" if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
+CUDA_DEVICE = "cuda:0"
+
+device = torch.device(CUDA_DEVICE if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
+
 
 def save(trainer, latents, target, mask, outdir, imname):
     colormesh_filename = os.path.join(outdir, imname)
@@ -27,7 +30,7 @@ def save(trainer, latents, target, mask, outdir, imname):
     shape_code, color_code = latents
     with torch.no_grad():
         deep_sdf.colormesh.create_mesh(trainer.deepsdf_net, trainer.colorsdf_net, 
-            shape_code, color_code, colormesh_filename, N=256, max_batch=int(2 ** 18))
+            shape_code, color_code, colormesh_filename, N=256, max_batch=int(2 ** 18), device=device)
     
     torch.save(latents, latent_filename)
     pred_rgb = trainer.render_color2d(color_code, shape_code)
@@ -113,12 +116,12 @@ def load_image_photoshop(path, imsize=128):
     return data
 
 
-def reconstruct(trainer, target, mask, epoch, trial, gamma, beta):
+def reconstruct(trainer, target, mask, epoch, trial, gamma, beta, device):
     temp_shape, temp_color = trainer.get_known_latent(0)
     min_loss = np.inf
     for i in range(trial):  # multi-trial latent optimization
-        init_shape = torch.randn_like(temp_shape).to(temp_shape.device)
-        init_color = torch.randn_like(temp_color).to(temp_color.device)
+        init_shape = torch.randn_like(temp_shape).to(device)
+        init_color = torch.randn_like(temp_color).to(device)
         latent, loss = trainer.step_recon_rgb(
             init_shape,
             init_color,
@@ -147,7 +150,49 @@ def head_tail(data):
     return head, tail
 
 
-def get_args():
+def main(args, cfg):
+    torch.backends.cudnn.benchmark = True
+    trainer_lib = importlib.import_module(cfg.trainer.type)
+    trainer = trainer_lib.Trainer(cfg, args, device)
+    trainer.resume_demo(args.pretrained)
+    idx2sid = {}
+    for k, v in trainer.sid2idx.items():
+        idx2sid[v] = k
+    trainer.eval()
+    os.makedirs(args.outdir, exist_ok=True)
+
+    impath = args.impath
+    imname = os.path.split(impath)[1].split(".")[0]
+    logger.info("Reconstruct 3D from %s ..." % imname)
+    target = load_image(impath)
+
+    if args.mask:  # reconstruct from partial views
+        mask = torch.zeros_like(target)
+        C, H, W = mask.shape
+        non_bg = torch.sum(target[0], dim=1) < W
+        first, last = head_tail(non_bg)
+        length = int((last - first) * args.mask_level)
+        mask[:, first : first + length, :] = 1
+    else:  # reconstruct from full views
+        mask = None
+    latents = reconstruct(trainer, target, mask, args.epoch, args.trial, args.gamma, args.beta, device)
+    try:
+        save(trainer, latents, target, mask, args.outdir, imname)
+    except Exception:
+        logger.error("Could not save output.", exc_info=True)
+
+def dict2namespace(config):
+    namespace = argparse.Namespace()
+    for key, value in config.items():
+        if isinstance(value, dict):
+            new_value = dict2namespace(value)
+        else:
+            new_value = value
+        setattr(namespace, key, new_value)
+    return namespace
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Reconstruction")
     parser.add_argument("config", type=str, help="The configuration file.")
     parser.add_argument(
@@ -163,56 +208,8 @@ def get_args():
     parser.add_argument("--trial", default=20, type=int)
     args = parser.parse_args()
 
-    def dict2namespace(config):
-        namespace = argparse.Namespace()
-        for key, value in config.items():
-            if isinstance(value, dict):
-                new_value = dict2namespace(value)
-            else:
-                new_value = value
-            setattr(namespace, key, new_value)
-        return namespace
-
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
     config = dict2namespace(config)
-    return args, config
 
-
-def main(args, cfg):
-    torch.backends.cudnn.benchmark = True
-    device = torch.device("cuda:0")
-    trainer_lib = importlib.import_module(cfg.trainer.type)
-    trainer = trainer_lib.Trainer(cfg, args, device)
-    trainer.resume_demo(args.pretrained)
-    idx2sid = {}
-    for k, v in trainer.sid2idx.items():
-        idx2sid[v] = k
-    trainer.eval()
-    os.makedirs(args.outdir, exist_ok=True)
-
-    impath = args.impath
-    imname = os.path.split(impath)[1].split(".")[0]
-    print("Reconstruct 3D from %s ..." % imname)
-    target = load_image(impath)
-
-    if args.mask:  # reconstruct from partial views
-        mask = torch.zeros_like(target)
-        C, H, W = mask.shape
-        non_bg = torch.sum(target[0], dim=1) < W
-        first, last = head_tail(non_bg)
-        length = int((last - first) * args.mask_level)
-        mask[:, first : first + length, :] = 1
-    else:  # reconstruct from full views
-        mask = None
-    latents = reconstruct(trainer, target, mask, args.epoch, args.trial, args.gamma, args.beta)
-    # for idx, latent in enumerate(latents):
-    try:
-        save(trainer, latents, target, mask, args.outdir, imname)
-    except Exception:
-        logger.error("Could not save output.", exc_info=True)
-
-
-if __name__ == "__main__":
-    args, cfg = get_args()
-    main(args, cfg)
+    main(args, config)

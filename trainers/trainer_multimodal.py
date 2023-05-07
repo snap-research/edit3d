@@ -1,16 +1,13 @@
+import importlib
 import os
-import numpy as np
 
 # PyTorch
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import importlib
-import itertools
 
-from trainers.base_trainer import BaseTrainer
-import toolbox.lr_scheduler
 import models.embeddings
+import toolbox.lr_scheduler
+from trainers.base_trainer import BaseTrainer
 from trainers.losses import laploss
 
 

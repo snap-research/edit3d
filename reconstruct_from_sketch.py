@@ -18,7 +18,9 @@ log_level = os.getenv("LOG_LEVEL", "INFO")
 logging.basicConfig(level=logging.getLevelName(log_level))
 
 logger = logging.getLogger(__name__)
-device = torch.device("cuda:0" if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
+CUDA_DEVICE = "cuda:0"
+
+device = torch.device(CUDA_DEVICE if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
 
 
 def save(trainer, latent, target, mask, outdir, imname, batch_size):

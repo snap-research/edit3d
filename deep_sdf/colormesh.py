@@ -1,26 +1,36 @@
 #!/usr/bin/env python3
-# Copyright 2004-present Facebook. All Rights Reserved.
+# Copyright 2004-2022 Facebook. All Rights Reserved.
 
 import logging
+import os
+import time
+
 import numpy as np
 import plyfile
 import skimage.measure
-import time
 import torch
 
 import deep_sdf.utils
 
+log_level = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(level=logging.getLevelName(log_level))
+
+logger = logging.getLogger(__name__)
+
+
+CUDA_DEVICE = "cuda:0"
 
 def create_mesh(
-    deepsdf,
-    colorsdf,
-    shape_code,
-    color_code,
-    filename,
-    N=256,
-    max_batch=32 ** 3,
-    offset=None,
-    scale=None,
+        deepsdf,
+        colorsdf,
+        shape_code,
+        color_code,
+        filename,
+        N=256,
+        max_batch=32 ** 3,
+        offset=None,
+        scale=None,
+        device=CUDA_DEVICE
 ):
     start = time.time()
     ply_filename = filename
@@ -55,15 +65,21 @@ def create_mesh(
     head = 0
 
     while head < num_samples:
-        sample_subset = samples[head : min(head + max_batch, num_samples), 0:3].cuda()
+        sample_subset = samples[head: min(head + max_batch, num_samples), 0:3]
+
+        if device == CUDA_DEVICE:
+            sample_subset = sample_subset.cuda()
 
         sdf, color3d = deep_sdf.utils.decode_colorsdf2(
             deepsdf, colorsdf, shape_code, color_code, sample_subset
         )
         sdf = sdf.squeeze(1).detach().cpu()
-        samples[head : min(head + max_batch, num_samples), 3] = sdf
-        samples[head : min(head + max_batch, num_samples), 4:] = color3d
+        samples[head: min(head + max_batch, num_samples), 3] = sdf
+        samples[head: min(head + max_batch, num_samples), 4:] = color3d
         head += max_batch
+        del sample_subset
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
 
     sdf_values = samples[:, 3]
     sdf_values = sdf_values.reshape(N, N, N)
@@ -71,7 +87,7 @@ def create_mesh(
     color_values = color_values.reshape(N, N, N, 3)
 
     end = time.time()
-    print("sampling takes: %f" % (end - start))
+    logger.info("sampling takes: %f" % (end - start))
 
     convert_sdf_samples_to_ply(
         sdf_values.data.cpu(),
@@ -85,13 +101,13 @@ def create_mesh(
 
 
 def convert_sdf_samples_to_ply(
-    pytorch_3d_sdf_tensor,
-    pytorch_3d_color_tensor,
-    voxel_grid_origin,
-    voxel_size,
-    ply_filename_out,
-    offset=None,
-    scale=None,
+        pytorch_3d_sdf_tensor,
+        pytorch_3d_color_tensor,
+        voxel_grid_origin,
+        voxel_size,
+        ply_filename_out,
+        offset=None,
+        scale=None,
 ):
     """
     Convert sdf samples to .ply
