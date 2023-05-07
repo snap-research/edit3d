@@ -2,7 +2,7 @@ resume:
     dir:
     
 data:
-    type: datasets.multimodal
+    type: edit3d.multimodal
     cate_id: "02691156" # airplane
     sketch_name: "sketch-T-2.png"
     split_files:
@@ -33,7 +33,7 @@ data:
         imsize: 128  
 
 trainer:
-    type: trainers.demo_multimodal
+    type: edit3d.trainers.demo_multimodal
     latent_dim: 128
     latent_code_shape:
         dim: 128

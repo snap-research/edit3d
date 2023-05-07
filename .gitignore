@@ -4,3 +4,4 @@ images
 .idea
 output
 data
+*.egg-info
