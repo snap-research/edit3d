@@ -15,7 +15,11 @@ source activate edit3d
 
 ### Training Multi-Modal Variational Auto-Decoders (MM-VADs)
 ```
-python train.py ./config/airplane_train.yaml --logdir /path/to/save/output
+python edit3d/train.py ./config/airplane_train.yaml --logdir /path/to/save/output
+```
+or 
+```
+make train
 ```
 
 ### Demo 
@@ -29,27 +33,40 @@ Download Pretrained models: [ShapeNet Chairs](https://www.dropbox.com/s/teez91j7
 #### Shape editing via 2D sketches
 
 ```
-python edit_via_sketch.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --imagelist path/to/target-images --epoch 5 --trial 1 --category airplane 
+python edit3d/edit_via_sketch.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --source_dir path/to/target-images --epoch 5 --trial 1 --category airplane 
 ```
-
+or 
+```
+make edit_via_sketch
+```
 #### Color editing via 2D scribbles 
 
 ```
-python edit_via_scribble.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --imagelist path/to/target-images --epoch 5  --trial 1 --category airplane --partid 3 
+python edit3d/edit_via_scribble.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --source_dir path/to/target-images --epoch 5  --trial 1 --category airplane --partid 3 
 ```
 Note: `--partid` indicates the list of semantic parts where the scribbles are drawn.
-
+or
+```
+make edit_via_scribble
+```
 #### Shape reconstruction from 2D sketches 
 
 ```
-python reconstruct_from_sketch.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --impath path/to/target-image --epoch 501 --trial 10
+python edit3d/reconstruct_from_sketch.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --impath path/to/target-image --epoch 501 --trial 10
 ```
 Note: add `--mask  --mask-level 0.5` to get partial view of the input image
-
+or 
+```
+make reconstruct_sketch
+```
 #### Shape reconstruction from RGB images
 
 ```
-python reconstruct_from_rgb.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --impath path/to/target-image --epoch 501 --trial 10
+python edit3d/reconstruct_from_rgb.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --impath path/to/target-image --epoch 501 --trial 10
+```
+or
+```
+make reconstruct_rgb
 ```
 Note: add `--mask  --mask-level 0.5` to get partial view of the input image
 
@@ -57,12 +74,12 @@ Note: add `--mask  --mask-level 0.5` to get partial view of the input image
 
 * Train MineGAN with pretrained MM-VADs
 ```
-python few_shot_adaptation.py ./config/airplane_demo.yaml  --mode train  --pretrained path/to/pretrained-mm-vads --outf path/to/output--niter 200 --nimgs 10 --code shape/or/color --dataset dataset/path
+python edit3d/few_shot_adaptation.py ./config/airplane_demo.yaml  --mode train  --pretrained path/to/pretrained-mm-vads --outf path/to/output--niter 200 --nimgs 10 --code shape/or/color --dataset dataset/path
 ```
 
 * Sample from the adapted MM-VADs
 ```
-python few_shot_adaptation.py ./config/airplane_demo.yaml --mode test --pretrained path/to/pretrained-mineGAN --outf path/to/output    --code shape/or/color 
+python edit3d/few_shot_adaptation.py ./config/airplane_demo.yaml --mode test --pretrained path/to/pretrained-mineGAN --outf path/to/output    --code shape/or/color 
 ```
 
 * Download pretrained MineGAN: 
