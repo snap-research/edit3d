@@ -1,10 +1,8 @@
-
 import torch
 import clip
 
 
 class CLIPLoss(torch.nn.Module):
-
     def __init__(self, image_size):
         super(CLIPLoss, self).__init__()
         self.model, self.preprocess = clip.load("ViT-B/32", device="cuda")

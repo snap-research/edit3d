@@ -12,7 +12,15 @@ import deep_sdf.utils
 
 
 def create_mesh(
-    deepsdf, colorsdf, shape_code, color_code, filename, N=256, max_batch=32 ** 3, offset=None, scale=None
+    deepsdf,
+    colorsdf,
+    shape_code,
+    color_code,
+    filename,
+    N=256,
+    max_batch=32 ** 3,
+    offset=None,
+    scale=None,
 ):
     start = time.time()
     ply_filename = filename
@@ -26,7 +34,7 @@ def create_mesh(
 
     overall_index = torch.arange(0, N ** 3, 1, out=torch.LongTensor())
     # samples = torch.zeros(N ** 3, 4)
-    samples = torch.zeros(N ** 3, 7) # xyz+sdf+color
+    samples = torch.zeros(N ** 3, 7)  # xyz+sdf+color
 
     # transform first 3 columns
     # to be the x, y, z index
@@ -49,8 +57,9 @@ def create_mesh(
     while head < num_samples:
         sample_subset = samples[head : min(head + max_batch, num_samples), 0:3].cuda()
 
-        sdf, color3d = deep_sdf.utils.decode_colorsdf2(deepsdf, colorsdf, shape_code, color_code,
-                            sample_subset)
+        sdf, color3d = deep_sdf.utils.decode_colorsdf2(
+            deepsdf, colorsdf, shape_code, color_code, sample_subset
+        )
         sdf = sdf.squeeze(1).detach().cpu()
         samples[head : min(head + max_batch, num_samples), 3] = sdf
         samples[head : min(head + max_batch, num_samples), 4:] = color3d
@@ -66,7 +75,7 @@ def create_mesh(
 
     convert_sdf_samples_to_ply(
         sdf_values.data.cpu(),
-        color_values.data.cpu(), 
+        color_values.data.cpu(),
         voxel_origin,
         voxel_size,
         ply_filename + ".ply",
@@ -110,7 +119,9 @@ def convert_sdf_samples_to_ply(
     colors = numpy_3d_color_tensor[idx[:, 0], idx[:, 1], idx[:, 2]]
     colors = np.uint8(colors * 255)
     colors = colors[:, ::-1]
-    colors_tuple = np.zeros((num_verts, ), dtype=[('red','u1'),('green','u1'),('blue','u1')])
+    colors_tuple = np.zeros(
+        (num_verts,), dtype=[("red", "u1"), ("green", "u1"), ("blue", "u1")]
+    )
     for i in range(0, num_verts):
         colors_tuple[i] = tuple(colors[i, :])
 
