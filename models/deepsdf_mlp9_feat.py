@@ -3,8 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class Decoder(nn.Module):
-    # shape decoder 
+    # shape decoder
     def __init__(self, cfg):
         super(Decoder, self).__init__()
         self.dropout = cfg.dropout
@@ -13,7 +14,7 @@ class Decoder(nn.Module):
         in_ch = cfg.in_ch
         out_ch = cfg.out_ch
         feat_ch = cfg.hidden_ch
-        self.feat_layer = cfg.feat_layer # out the act of layer x as feat of shape 
+        self.feat_layer = cfg.feat_layer  # out the act of layer x as feat of shape
 
         if self.dropout is False:
             self.net1 = nn.Sequential(
@@ -24,7 +25,7 @@ class Decoder(nn.Module):
                 nn.utils.weight_norm(nn.Linear(feat_ch, feat_ch)),
                 nn.ReLU(inplace=True),
                 nn.utils.weight_norm(nn.Linear(feat_ch, feat_ch - in_ch)),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
             )
             self.net2_1 = nn.Sequential(
                 nn.utils.weight_norm(nn.Linear(feat_ch, feat_ch)),
@@ -78,13 +79,12 @@ class Decoder(nn.Module):
                 nn.utils.weight_norm(nn.Linear(feat_ch, feat_ch)),
                 nn.ReLU(inplace=True),
             )
-            self.out =  nn.Sequential(
-                nn.Dropout(dropout_prob, inplace=False),
-                nn.Linear(feat_ch, out_ch)
+            self.out = nn.Sequential(
+                nn.Dropout(dropout_prob, inplace=False), nn.Linear(feat_ch, out_ch)
             )
 
         num_params = sum(p.numel() for p in self.parameters())
-        print('[num parameters: {}]'.format(num_params))
+        print("[num parameters: {}]".format(num_params))
 
     def forward(self, z):
         in1 = z
@@ -96,7 +96,7 @@ class Decoder(nn.Module):
         out2_2 = self.net2_2(out2_1)
         out2_3 = self.net2_3(out2_2)
         out2_4 = self.net2_4(out2_3)
-        out2    = self.out(out2_4)
+        out2 = self.out(out2_4)
 
         if feat_layer == 1:
             feat = out2_1
@@ -111,4 +111,3 @@ class Decoder(nn.Module):
             out2 = torch.tanh(out2)
 
         return out2, feat
- 

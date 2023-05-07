@@ -1,0 +1,6 @@
+log
+images
+**/__pycache__
+.idea
+output
+data

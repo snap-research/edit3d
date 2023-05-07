@@ -16,14 +16,12 @@ class Decoder(nn.Module):
             nn.ReLU(inplace=True),
             nn.utils.weight_norm(nn.Linear(feat_ch, feat_ch)),
             nn.ReLU(inplace=True),
-            nn.Linear(feat_ch, 3)
+            nn.Linear(feat_ch, 3),
         )
-        
+
     def forward(self, z_color):
 
         color_out = self.color_net(z_color)
-        color_out = torch.sigmoid(color_out) # output is always 0 ~ 1
+        color_out = torch.sigmoid(color_out)  # output is always 0 ~ 1
 
         return color_out
- 
-
