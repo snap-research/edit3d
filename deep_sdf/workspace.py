@@ -36,9 +36,7 @@ def load_experiment_specifications(experiment_directory):
 
 def load_model_parameters(experiment_directory, checkpoint, decoder):
 
-    filename = os.path.join(
-        experiment_directory, model_params_subdir, checkpoint + ".pth"
-    )
+    filename = os.path.join(experiment_directory, model_params_subdir, checkpoint + ".pth")
 
     if not os.path.isfile(filename):
         raise Exception('model state dict "{}" does not exist'.format(filename))
@@ -52,9 +50,7 @@ def load_model_parameters(experiment_directory, checkpoint, decoder):
 
 def build_decoder(experiment_directory, experiment_specs):
 
-    arch = __import__(
-        "networks." + experiment_specs["NetworkArch"], fromlist=["Decoder"]
-    )
+    arch = __import__("networks." + experiment_specs["NetworkArch"], fromlist=["Decoder"])
 
     latent_size = experiment_specs["CodeLength"]
 
@@ -63,9 +59,7 @@ def build_decoder(experiment_directory, experiment_specs):
     return decoder
 
 
-def load_decoder(
-    experiment_directory, experiment_specs, checkpoint, data_parallel=True
-):
+def load_decoder(experiment_directory, experiment_specs, checkpoint, data_parallel=True):
 
     decoder = build_decoder(experiment_directory, experiment_specs)
 
@@ -79,9 +73,7 @@ def load_decoder(
 
 def load_latent_vectors(experiment_directory, checkpoint):
 
-    filename = os.path.join(
-        experiment_directory, latent_codes_subdir, checkpoint + ".pth"
-    )
+    filename = os.path.join(experiment_directory, latent_codes_subdir, checkpoint + ".pth")
 
     if not os.path.isfile(filename):
         raise Exception(
@@ -116,9 +108,7 @@ def get_data_source_map_filename(data_dir):
     return os.path.join(data_dir, data_source_map_filename)
 
 
-def get_reconstructed_mesh_filename(
-    experiment_dir, epoch, dataset, class_name, instance_name
-):
+def get_reconstructed_mesh_filename(experiment_dir, epoch, dataset, class_name, instance_name):
 
     return os.path.join(
         experiment_dir,
@@ -131,9 +121,7 @@ def get_reconstructed_mesh_filename(
     )
 
 
-def get_reconstructed_code_filename(
-    experiment_dir, epoch, dataset, class_name, instance_name
-):
+def get_reconstructed_code_filename(experiment_dir, epoch, dataset, class_name, instance_name):
 
     return os.path.join(
         experiment_dir,
@@ -186,9 +174,7 @@ def get_latent_codes_dir(experiment_dir, create_if_nonexistent=False):
     return dir
 
 
-def get_normalization_params_filename(
-    data_dir, dataset_name, class_name, instance_name
-):
+def get_normalization_params_filename(data_dir, dataset_name, class_name, instance_name):
     return os.path.join(
         data_dir,
         normalization_param_subdir,

@@ -8,11 +8,18 @@ import argparse
 import yaml
 import importlib
 import cv2
-import glob
+import logging
+
+log_level = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(level=logging.getLevelName(log_level))
+
+logger = logging.getLogger(__name__)
+CUDA_DEVICE = "cuda:0"
+
+device = torch.device(CUDA_DEVICE if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
 
 
-def save(trainer, latent, target, mask, outdir, imname):
-    # mesh_filename = os.path.join(outdir, imname)
+def save(trainer, latents, target, mask, outdir, imname):
     colormesh_filename = os.path.join(outdir, imname)
     latent_filename = os.path.join(outdir, imname + ".pth")
     pred_rgb_filename = os.path.join(outdir, imname + "_rgb.png")
@@ -20,7 +27,7 @@ def save(trainer, latent, target, mask, outdir, imname):
     pred_3D_filename = os.path.join(outdir, imname + "_3D.png")
     target_filename = os.path.join(outdir, imname + "_target.png")
     masked_target_filename = os.path.join(outdir, imname + "_masked_target.png")
-    shape_code, color_code = latent
+    shape_code, color_code = latents
     with torch.no_grad():
         deep_sdf.colormesh.create_mesh(
             trainer.deepsdf_net,
@@ -30,9 +37,10 @@ def save(trainer, latent, target, mask, outdir, imname):
             colormesh_filename,
             N=256,
             max_batch=int(2 ** 18),
+            device=device,
         )
 
-    torch.save(latent, latent_filename)
+    torch.save(latents, latent_filename)
     pred_rgb = trainer.render_color2d(color_code, shape_code)
     save_image(pred_rgb, pred_rgb_filename)
 
@@ -51,7 +59,7 @@ def save(trainer, latent, target, mask, outdir, imname):
         )
 
 
-def is_exist(outdir, imname):
+def exists(outdir, imname):
     mesh_filename = os.path.join(outdir, imname)
     latent_filename = os.path.join(outdir, imname + ".pth")
     pred_rgb_filename = os.path.join(outdir, imname + "_rgb.png")
@@ -116,12 +124,12 @@ def load_image_photoshop(path, imsize=128):
     return data
 
 
-def reconstruct(trainer, target, mask, epoch, trial, gamma, beta):
+def reconstruct(trainer, target, mask, epoch, trial, gamma, beta, device):
     temp_shape, temp_color = trainer.get_known_latent(0)
     min_loss = np.inf
     for i in range(trial):  # multi-trial latent optimization
-        init_shape = torch.randn_like(temp_shape).to(temp_shape.device)
-        init_color = torch.randn_like(temp_color).to(temp_color.device)
+        init_shape = torch.randn_like(temp_shape).to(device)
+        init_color = torch.randn_like(temp_color).to(device)
         latent, loss = trainer.step_recon_rgb(
             init_shape,
             init_color,
@@ -150,41 +158,8 @@ def head_tail(data):
     return head, tail
 
 
-def get_args():
-    parser = argparse.ArgumentParser(description="Reconstruction")
-    parser.add_argument("config", type=str, help="The configuration file.")
-    parser.add_argument(
-        "--pretrained", default=None, type=str, help="pretrained model checkpoint"
-    )
-    parser.add_argument("--outdir", default=None, type=str, help="path of output")
-    parser.add_argument("--impath", default=None, type=str, help="path of an image")
-    parser.add_argument("--mask", default=False, action="store_true")
-    parser.add_argument("--mask-level", default=0.5, type=float)
-    parser.add_argument("--gamma", default=0.02, type=float)
-    parser.add_argument("--beta", default=0.5, type=float)
-    parser.add_argument("--epoch", default=1001, type=int)
-    parser.add_argument("--trial", default=20, type=int)
-    args = parser.parse_args()
-
-    def dict2namespace(config):
-        namespace = argparse.Namespace()
-        for key, value in config.items():
-            if isinstance(value, dict):
-                new_value = dict2namespace(value)
-            else:
-                new_value = value
-            setattr(namespace, key, new_value)
-        return namespace
-
-    with open(args.config, "r") as f:
-        config = yaml.safe_load(f)
-    config = dict2namespace(config)
-    return args, config
-
-
 def main(args, cfg):
     torch.backends.cudnn.benchmark = True
-    device = torch.device("cuda:0")
     trainer_lib = importlib.import_module(cfg.trainer.type)
     trainer = trainer_lib.Trainer(cfg, args, device)
     trainer.resume_demo(args.pretrained)
@@ -196,7 +171,7 @@ def main(args, cfg):
 
     impath = args.impath
     imname = os.path.split(impath)[1].split(".")[0]
-    print("Reconstruct 3D from %s ..." % imname)
+    logger.info("Reconstruct 3D from %s ..." % imname)
     target = load_image(impath)
 
     if args.mask:  # reconstruct from partial views
@@ -208,16 +183,40 @@ def main(args, cfg):
         mask[:, first : first + length, :] = 1
     else:  # reconstruct from full views
         mask = None
-    latent = reconstruct(
-        trainer, target, mask, args.epoch, args.trial, args.gamma, args.beta
-    )
-    for idx, latent in enumerate(latents):
-        try:
-            save(trainer, latent, target, mask, args.outdir, imname)
-        except Exception:
-            pass
+    latents = reconstruct(trainer, target, mask, args.epoch, args.trial, args.gamma, args.beta, device)
+    try:
+        save(trainer, latents, target, mask, args.outdir, imname)
+    except Exception:
+        logger.error("Could not save output.", exc_info=True)
+
+
+def dict2namespace(config):
+    namespace = argparse.Namespace()
+    for key, value in config.items():
+        if isinstance(value, dict):
+            new_value = dict2namespace(value)
+        else:
+            new_value = value
+        setattr(namespace, key, new_value)
+    return namespace
 
 
 if __name__ == "__main__":
-    args, cfg = get_args()
-    main(args, cfg)
+    parser = argparse.ArgumentParser(description="Reconstruction")
+    parser.add_argument("config", type=str, help="The configuration file.")
+    parser.add_argument("--pretrained", default=None, type=str, help="pretrained model checkpoint")
+    parser.add_argument("--outdir", default=None, type=str, help="path of output")
+    parser.add_argument("--impath", default=None, type=str, help="path of an image")
+    parser.add_argument("--mask", default=False, action="store_true")
+    parser.add_argument("--mask-level", default=0.5, type=float)
+    parser.add_argument("--gamma", default=0.02, type=float)
+    parser.add_argument("--beta", default=0.5, type=float)
+    parser.add_argument("--epoch", default=1001, type=int)
+    parser.add_argument("--trial", default=20, type=int)
+    args = parser.parse_args()
+
+    with open(args.config, "r") as f:
+        config = yaml.safe_load(f)
+    config = dict2namespace(config)
+
+    main(args, config)

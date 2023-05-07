@@ -18,7 +18,9 @@ log_level = os.getenv("LOG_LEVEL", "INFO")
 logging.basicConfig(level=logging.getLevelName(log_level))
 
 logger = logging.getLogger(__name__)
-device = torch.device("cuda:0" if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
+CUDA_DEVICE = "cuda:0"
+
+device = torch.device(CUDA_DEVICE if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
 
 
 def save(trainer, latent, target, mask, outdir, imname, batch_size):
@@ -47,11 +49,11 @@ def is_exist(outdir, imname):
     pred_3D_filename = os.path.join(outdir, imname + "_3D.png")
     target_filename = os.path.join(outdir, imname + "_target.png")
     if (
-            os.path.exists(mesh_filename)
-            and os.path.exists(latent_filename)
-            and os.path.exists(pred_sketch_filename)
-            and os.path.exists(pred_3D_filename)
-            and os.path.exists(target_filename)
+        os.path.exists(mesh_filename)
+        and os.path.exists(latent_filename)
+        and os.path.exists(pred_sketch_filename)
+        and os.path.exists(pred_3D_filename)
+        and os.path.exists(target_filename)
     ):
         return True
     else:
@@ -81,9 +83,7 @@ def reconstruct(trainer, target, mask, epoch, trial, gamma, beta, K=5):
     losses = []
     for i in range(trial):  # multi-trial latent optimization
         init_latent = torch.randn_like(template).to(template.device)
-        latent, loss = trainer.step_manip_sketch(
-            init_latent, target, mask=mask, epoch=epoch, gamma=gamma, beta=beta
-        )
+        latent, loss = trainer.step_manip_sketch(init_latent, target, mask=mask, epoch=epoch, gamma=gamma, beta=beta)
         latents.append(latent[-1])
         losses.append(loss)
     # get the top K latent
@@ -127,12 +127,10 @@ def main(args, config):
         non_bg = torch.sum(target[0], dim=1) < W
         first, last = head_tail(non_bg)
         length = int((last - first) * args.mask_level)
-        mask[:, first: first + length, :] = 1
+        mask[:, first : first + length, :] = 1
     else:  # reconstruct from full views
         mask = None
-    latents = reconstruct(
-        trainer, target, mask, args.epoch, args.trial, args.gamma, args.beta
-    )
+    latents = reconstruct(trainer, target, mask, args.epoch, args.trial, args.gamma, args.beta)
     for idx, latent in enumerate(latents):
         try:
             save(trainer, latent, target, mask, args.outdir, imname + f"_{idx}", batch_size=args.batch_size)
@@ -143,9 +141,7 @@ def main(args, config):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Reconstruction")
     parser.add_argument("config", type=str, help="The configuration file.")
-    parser.add_argument(
-        "--pretrained", default=None, type=str, help="pretrained model checkpoint"
-    )
+    parser.add_argument("--pretrained", default=None, type=str, help="pretrained model checkpoint")
     parser.add_argument("--outdir", default=None, type=str, help="path of output")
     parser.add_argument("--impath", default=None, type=str, help="path of an image")
     parser.add_argument("--mask", default=False, action="store_true")

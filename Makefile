@@ -16,3 +16,7 @@ endif
 
 reconstruct_sketch_demo:
 	python reconstruct_from_sketch.py config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output --impath examples/recon_sketch/airplanes/d54ca25127a15d2b937ae00fead8910d/sketch-T-2.png --mask  --mask-level 0.5
+
+reconstruct_rgb_demo:
+	python reconstruct_from_rgb.py config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output --impath examples/recon_sketch/airplanes/d54ca25127a15d2b937ae00fead8910d/sketch-T-2.png --mask  --mask-level 0.5
+

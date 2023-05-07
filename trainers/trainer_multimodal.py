@@ -1,16 +1,13 @@
+import importlib
 import os
-import numpy as np
 
 # PyTorch
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import importlib
-import itertools
 
-from trainers.base_trainer import BaseTrainer
-import toolbox.lr_scheduler
 import models.embeddings
+import toolbox.lr_scheduler
+from trainers.base_trainer import BaseTrainer
 from trainers.losses import laploss
 
 
@@ -93,26 +90,18 @@ class Trainer(BaseTrainer):
         print("[ImGen Trainer] init. #entries in sid2idx: {}".format(len(self.sid2idx)))
 
         # shape embedding
-        self.latent_embeddings_shape = self._get_latent(
-            self.cfg.trainer.latent_code_shape, N=len(self.sid2idx)
-        )
+        self.latent_embeddings_shape = self._get_latent(self.cfg.trainer.latent_code_shape, N=len(self.sid2idx))
         (
             self.optim_latentcode_shape,
             self.lrscheduler_latentcode_shape,
-        ) = self._get_optim(
-            self.latent_embeddings_shape.parameters(), self.cfg.trainer.optim_latentcode
-        )
+        ) = self._get_optim(self.latent_embeddings_shape.parameters(), self.cfg.trainer.optim_latentcode)
 
         # color embedding
-        self.latent_embeddings_color = self._get_latent(
-            self.cfg.trainer.latent_code_color, N=len(self.sid2idx)
-        )
+        self.latent_embeddings_color = self._get_latent(self.cfg.trainer.latent_code_color, N=len(self.sid2idx))
         (
             self.optim_latentcode_color,
             self.lrscheduler_latentcode_color,
-        ) = self._get_optim(
-            self.latent_embeddings_color.parameters(), self.cfg.trainer.optim_latentcode
-        )
+        ) = self._get_optim(self.latent_embeddings_color.parameters(), self.cfg.trainer.optim_latentcode)
 
         self.train()
 
@@ -138,9 +127,7 @@ class Trainer(BaseTrainer):
             raise NotImplementedError("Unknow optimizer: {}".format(cfg.type))
         scheduler = None
         if hasattr(cfg, "lr_scheduler"):
-            scheduler = getattr(toolbox.lr_scheduler, cfg.lr_scheduler.type)(
-                cfg.lr_scheduler
-            )
+            scheduler = getattr(toolbox.lr_scheduler, cfg.lr_scheduler.type)(cfg.lr_scheduler)
         return optim, scheduler
 
     # lr schedule
@@ -175,9 +162,7 @@ class Trainer(BaseTrainer):
         if cfg.type.lower() == "clamped_l1":
             from models.lossfuns import clamped_l1
 
-            lossfun = lambda pred, gt: torch.mean(
-                clamped_l1(pred, gt, trunc=cfg.trunc), dim=-1
-            )
+            lossfun = lambda pred, gt: torch.mean(clamped_l1(pred, gt, trunc=cfg.trunc), dim=-1)
         elif cfg.type.lower() == "clamped_l1_correct":
             from models.lossfuns import clamped_l1_correct as clamped_l1
 
@@ -202,9 +187,7 @@ class Trainer(BaseTrainer):
 
     # Convert list of shape ids to their corresponding indices in embedding.
     def _b_sid2idx(self, sid_list):
-        data_indices = torch.tensor(
-            [self.sid2idx[x] for x in sid_list], dtype=torch.long, device=self.device
-        )
+        data_indices = torch.tensor([self.sid2idx[x] for x in sid_list], dtype=torch.long, device=self.device)
         return data_indices
 
     def _b_idx2latent(self, latent_embeddings, indices, num_augment_pts=None):
@@ -220,9 +203,7 @@ class Trainer(BaseTrainer):
                 batch_sigma = batch_latent_dict["std"]
             else:
                 batch_sigma = torch.exp(0.5 * batch_logvar)
-            self.additional_log_info["vad_batch_sigma_mean"] = torch.mean(
-                batch_sigma
-            ).item()
+            self.additional_log_info["vad_batch_sigma_mean"] = torch.mean(batch_sigma).item()
         else:
             kld = 0.0
         if "latent_code_augment" in batch_latent_dict.keys():
@@ -276,30 +257,18 @@ class Trainer(BaseTrainer):
     def step(self, data):
 
         data_ids = data["shape_ids"]
-        data_f = data["surface_samples"].to(
-            self.device, non_blocking=True
-        )  # [64 2048 7] xyzd+rgb
-        data_indices = (
-            data["shape_indices"].squeeze(-1).to(self.device, non_blocking=True)
-        )  # [64]
+        data_f = data["surface_samples"].to(self.device, non_blocking=True)  # [64 2048 7] xyzd+rgb
+        data_indices = data["shape_indices"].squeeze(-1).to(self.device, non_blocking=True)  # [64]
         data_sketch = data["sketch"].to(self.device, non_blocking=True)
         data_color2d = data["color_2d"].to(self.device, non_blocking=True)
         # data_color3d = data['color_3d'].to(self.device, non_blocking=True).to(torch.float)
 
         # shape and color have different latent code
-        (
-            latent_codes_coarse_shape,
-            latent_codes_fine_shape,
-            kld_shape,
-        ) = self._b_idx2latent(
+        (latent_codes_coarse_shape, latent_codes_fine_shape, kld_shape,) = self._b_idx2latent(
             self.latent_embeddings_shape, data_indices, num_augment_pts=data_f.size(1)
         )  # [64 128]
 
-        (
-            latent_codes_coarse_color,
-            latent_codes_fine_color,
-            kld_color,
-        ) = self._b_idx2latent(
+        (latent_codes_coarse_color, latent_codes_fine_color, kld_color,) = self._b_idx2latent(
             self.latent_embeddings_color, data_indices, num_augment_pts=data_f.size(1)
         )  # [64 128]
 
@@ -319,9 +288,7 @@ class Trainer(BaseTrainer):
         self.optim_deepsdf.zero_grad()
         pts_fine = data_f[..., :3]
         dists_gt_fine = data_f[..., [3]].squeeze(-1)
-        dists_deepsdf, shape_feat = self._forward_deepsdf(
-            latent_codes_fine_shape, pts_fine
-        )  # 64, 2048, 1
+        dists_deepsdf, shape_feat = self._forward_deepsdf(latent_codes_fine_shape, pts_fine)  # 64, 2048, 1
         dists_deepsdf = dists_deepsdf.squeeze(-1)
         loss_fine_shape = torch.mean(self.lossfun_fine(dists_deepsdf, dists_gt_fine))
 
@@ -329,13 +296,9 @@ class Trainer(BaseTrainer):
         self.optim_colorsdf.zero_grad()
         color_gt_fine = data_f[..., 4:7].squeeze(-1)
         if self.cfg.trainer.color_shape_joint:
-            rgb_colorsdf = self._forward_colorsdf(
-                latent_codes_fine_color, shape_feat, pts_fine
-            ).squeeze(-1)
+            rgb_colorsdf = self._forward_colorsdf(latent_codes_fine_color, shape_feat, pts_fine).squeeze(-1)
         else:
-            rgb_colorsdf = self._forward_colorsdf(
-                latent_codes_fine_color, shape_feat.detach(), pts_fine
-            ).squeeze(-1)
+            rgb_colorsdf = self._forward_colorsdf(latent_codes_fine_color, shape_feat.detach(), pts_fine).squeeze(-1)
         loss_color3D = torch.mean(self.lossfun_color3D(color_gt_fine, rgb_colorsdf))
 
         # sketch generator
@@ -345,9 +308,7 @@ class Trainer(BaseTrainer):
 
         # color image generator
         self.optim_colorgen.zero_grad()
-        im_samples = self._forward_colorgen(
-            latent_codes_coarse_color, latent_codes_coarse_shape
-        )
+        im_samples = self._forward_colorgen(latent_codes_coarse_color, latent_codes_coarse_shape)
         # loss_color2D = torch.mean(self.lossfun_color2D(im_samples, data_color2d))
         lap_loss = laploss(im_samples, data_color2d)
         mse_loss = F.mse_loss(im_samples, data_color2d)
@@ -361,9 +322,7 @@ class Trainer(BaseTrainer):
         )
 
         (
-            loss
-            + kld_shape * self.cfg.trainer.kld_weight_shape
-            + kld_color * self.cfg.trainer.kld_weight_color
+            loss + kld_shape * self.cfg.trainer.kld_weight_shape + kld_color * self.cfg.trainer.kld_weight_color
         ).backward()
 
         self.optim_deepsdf.step()
@@ -393,17 +352,11 @@ class Trainer(BaseTrainer):
 
     def sample_images(self, data):
 
-        data_indices = (
-            data["shape_indices"].squeeze(-1).to(self.device, non_blocking=True)
-        )  # [64]
+        data_indices = data["shape_indices"].squeeze(-1).to(self.device, non_blocking=True)  # [64]
 
         # sample sketch
         data_sketch = data["sketch"].squeeze(-1).to(self.device, non_blocking=True)
-        (
-            latent_codes_coarse_shape,
-            latent_codes_fine_shape,
-            kld_shape,
-        ) = self._b_idx2latent(
+        (latent_codes_coarse_shape, latent_codes_fine_shape, kld_shape,) = self._b_idx2latent(
             self.latent_embeddings_shape, data_indices, num_augment_pts=2048
         )  # [64 128]
 
@@ -419,16 +372,12 @@ class Trainer(BaseTrainer):
 
         latent_codes_coarse_color = latent_codes_coarse_color.detach()
         with torch.no_grad():
-            rgb_samples = self._forward_colorgen(
-                latent_codes_coarse_color, latent_codes_coarse_shape
-            )
+            rgb_samples = self._forward_colorgen(latent_codes_coarse_color, latent_codes_coarse_shape)
 
         # sample sdf with color info
         rendered_imgs = []
         for idx in range(latent_codes_coarse_shape.shape[0]):
-            rendered_img = self.render_express(
-                latent_codes_coarse_shape[idx], latent_codes_coarse_color[idx]
-            )
+            rendered_img = self.render_express(latent_codes_coarse_shape[idx], latent_codes_coarse_color[idx])
             rendered_imgs.append(rendered_img)
 
         return {
@@ -479,9 +428,7 @@ class Trainer(BaseTrainer):
             renderer = SDFRenderer(self.cfg.render_web, self.device)
         self.eval()
         with torch.no_grad():
-            sdf_fun = self._get_render_sdfs(
-                latent_codes_fine_shape, latent_codes_fine_color
-            )
+            sdf_fun = self._get_render_sdfs(latent_codes_fine_shape, latent_codes_fine_color)
             print("R", end="")
             img = renderer.render(sdf_fun, coloridx=None)
             # img = img[...,[2,1,0]] # RGB -> BGR

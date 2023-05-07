@@ -27,10 +27,7 @@ def init_np_seed(worker_id):
 
 def np_collate(batch):
     batch_z = zip(*batch)
-    return [
-        torch.stack([torch.from_numpy(b) for b in batch_z_z], 0)
-        for batch_z_z in batch_z
-    ]
+    return [torch.stack([torch.from_numpy(b) for b in batch_z_z], 0) for batch_z_z in batch_z]
 
 
 # czz: the pinned memory is just used to speed up the transfer between CPU and GPU
@@ -129,9 +126,7 @@ class NPYLoaderN(Dataset):
         return len(self.filelist)
 
     def __getitem__(self, idx):
-        shape_id, surface_file, sphere_file, sketch_file, color2d_file = self.filelist[
-            idx
-        ]
+        shape_id, surface_file, sphere_file, sketch_file, color2d_file = self.filelist[idx]
 
         # for surface samples: [xyzd_inside; xyzd_outside] half inside, half outside
         num_inside_points = int(self.npoints_fine * 0.45)
@@ -140,13 +135,8 @@ class NPYLoaderN(Dataset):
         # Surface samples
         data = np.load(surface_file, mmap_mode="r")
         num_samples = data.shape[0]
-        subset_idx_inside = np.random.choice(
-            num_samples // 2, num_inside_points, replace=True
-        )
-        subset_idx_outside = (
-            np.random.choice(num_samples // 2, num_outside_points, replace=True)
-            + num_samples // 2
-        )
+        subset_idx_inside = np.random.choice(num_samples // 2, num_inside_points, replace=True)
+        subset_idx_outside = np.random.choice(num_samples // 2, num_outside_points, replace=True) + num_samples // 2
         subset_idx = np.concatenate([subset_idx_inside, subset_idx_outside])
         data_sur = data[subset_idx, :]  # xyzd + RGB
         # Sphere samples
@@ -203,28 +193,20 @@ def get_data_loaders(args):
         for im_name in im_list:
             if im_name.name in sphere_list:
                 # im_path[im_name.name] = os.path.join(args.sdf_data_dir.sketch, im_name.name, "sketch-F-2.png")
-                im_path[im_name.name] = os.path.join(
-                    args.sdf_data_dir.sketch, im_name.name, args.sketch_name
-                )
+                im_path[im_name.name] = os.path.join(args.sdf_data_dir.sketch, im_name.name, args.sketch_name)
 
     # load color data
     color2d_path = {}
     with os.scandir(args.sdf_data_dir.color) as im_list:
         for im_name in im_list:
             if im_name.name in sphere_list:
-                color2d_path[im_name.name] = os.path.join(
-                    args.sdf_data_dir.color, im_name.name, "render_r_000.png"
-                )
+                color2d_path[im_name.name] = os.path.join(args.sdf_data_dir.color, im_name.name, "render_r_000.png")
 
     with os.scandir(args.sdf_data_dir.surface) as npy_list:
         for npy_path in npy_list:
             if npy_path.is_file():
                 shape_id = npy_path.name.split(".")[0]
-                if (
-                    (shape_id in sphere_list)
-                    and (shape_id in color2d_path.keys())
-                    and (shape_id in im_path.keys())
-                ):
+                if (shape_id in sphere_list) and (shape_id in color2d_path.keys()) and (shape_id in im_path.keys()):
                     surface_path = npy_path.path
                     sphere_path = os.path.join(args.sdf_data_dir.sphere, npy_path.name)
                     if shape_id in train_split:
@@ -252,11 +234,7 @@ def get_data_loaders(args):
 
     train_data_list.sort()
     test_data_list.sort()
-    print(
-        "[get_data_loaders] #train: {}; #test: {}.".format(
-            len(train_data_list), len(test_data_list)
-        )
-    )
+    print("[get_data_loaders] #train: {}; #test: {}.".format(len(train_data_list), len(test_data_list)))
 
     train_dataset = NPYLoaderN(
         train_data_list,

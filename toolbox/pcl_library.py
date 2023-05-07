@@ -14,11 +14,7 @@ def uniform_sample_on_triangle(triangle):
         rn = np.random.rand(2)
         if np.sum(rn) <= 1.0:
             break
-    return (
-        rn[0] * (triangle[1] - triangle[0])
-        + rn[1] * (triangle[2] - triangle[0])
-        + triangle[0]
-    )
+    return rn[0] * (triangle[1] - triangle[0]) + rn[1] * (triangle[2] - triangle[0]) + triangle[0]
 
 
 # mesh
@@ -33,9 +29,7 @@ def mesh2pcl(triangle_collection, numpoints):
 
     # sample k points
     # note that this will give an error if self.area_collection.shape[0] = 0 (implies empty shape)
-    sampled_triangles = np.random.choice(
-        area_collection.shape[0], size=numpoints, p=area_collection
-    )
+    sampled_triangles = np.random.choice(area_collection.shape[0], size=numpoints, p=area_collection)
 
     # Sample one random uvs on each triangle
     rand_uv = np.random.rand(numpoints, 2)
@@ -44,10 +38,8 @@ def mesh2pcl(triangle_collection, numpoints):
 
     sampled_triangle_collection = triangle_collection[sampled_triangles, :, :]
     sampled_points = (
-        rand_uv[:, [0]]
-        * (sampled_triangle_collection[:, 1, :] - sampled_triangle_collection[:, 0, :])
-        + rand_uv[:, [1]]
-        * (sampled_triangle_collection[:, 2, :] - sampled_triangle_collection[:, 0, :])
+        rand_uv[:, [0]] * (sampled_triangle_collection[:, 1, :] - sampled_triangle_collection[:, 0, :])
+        + rand_uv[:, [1]] * (sampled_triangle_collection[:, 2, :] - sampled_triangle_collection[:, 0, :])
         + sampled_triangle_collection[:, 0, :]
     )
 
@@ -66,9 +58,7 @@ def mesh2pcl_color(triangle_collection, triangle_color_collection, numpoints):
 
     # sample k points
     # note that this will give an error if self.area_collection.shape[0] = 0 (implies empty shape)
-    sampled_triangles = np.random.choice(
-        area_collection.shape[0], size=numpoints, p=area_collection
-    )
+    sampled_triangles = np.random.choice(area_collection.shape[0], size=numpoints, p=area_collection)
 
     # Sample one random uvs on each triangle
     rand_uv = np.random.rand(numpoints, 2)
@@ -76,20 +66,10 @@ def mesh2pcl_color(triangle_collection, triangle_color_collection, numpoints):
     rand_uv[oob_idx, :] = -rand_uv[oob_idx, :] + 1.0
 
     sampled_triangle_collection = triangle_collection[sampled_triangles, :, :]
-    sampled_triangle_color_collection = triangle_color_collection[
-        sampled_triangles, :, :
-    ]
+    sampled_triangle_color_collection = triangle_color_collection[sampled_triangles, :, :]
     sampled_points = (
-        rand_uv[:, [0]]
-        * (
-            sampled_triangle_collection[:, 1, :3]
-            - sampled_triangle_collection[:, 0, :3]
-        )
-        + rand_uv[:, [1]]
-        * (
-            sampled_triangle_collection[:, 2, :3]
-            - sampled_triangle_collection[:, 0, :3]
-        )
+        rand_uv[:, [0]] * (sampled_triangle_collection[:, 1, :3] - sampled_triangle_collection[:, 0, :3])
+        + rand_uv[:, [1]] * (sampled_triangle_collection[:, 2, :3] - sampled_triangle_collection[:, 0, :3])
         + sampled_triangle_collection[:, 0, :3]
     )
     sampled_points_color = sampled_triangle_color_collection[:, 0, :]

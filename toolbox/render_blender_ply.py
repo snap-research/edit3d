@@ -11,12 +11,8 @@ import argparse, sys, os, math, re
 import bpy
 from glob import glob
 
-parser = argparse.ArgumentParser(
-    description="Renders given obj file by rotation a camera around it."
-)
-parser.add_argument(
-    "--views", type=int, default=1, help="number of views to be rendered"
-)
+parser = argparse.ArgumentParser(description="Renders given obj file by rotation a camera around it.")
+parser.add_argument("--views", type=int, default=1, help="number of views to be rendered")
 parser.add_argument("obj", type=str, help="Path to the obj file to be rendered.")
 parser.add_argument(
     "--output_folder",
@@ -36,9 +32,7 @@ parser.add_argument(
     default=True,
     help="Remove double vertices to improve mesh quality.",
 )
-parser.add_argument(
-    "--edge_split", type=bool, default=True, help="Adds edge split filter."
-)
+parser.add_argument("--edge_split", type=bool, default=True, help="Adds edge split filter.")
 parser.add_argument(
     "--depth_scale",
     type=float,
@@ -57,9 +51,7 @@ parser.add_argument(
     default="PNG",
     help="Format of files generated. Either PNG or OPEN_EXR",
 )
-parser.add_argument(
-    "--resolution", type=int, default=128, help="Resolution of the images."
-)
+parser.add_argument("--resolution", type=int, default=128, help="Resolution of the images.")
 parser.add_argument(
     "--engine",
     type=str,

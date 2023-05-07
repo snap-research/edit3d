@@ -28,9 +28,7 @@ def conv_gauss(t_input, stride=1, k_size=5, sigma=1.6, repeats=1):
     t_kernel3 = torch.cat([t_kernel] * num_channels, 0)
     t_result = t_input
     for r in range(repeats):
-        t_result = F.conv2d(
-            t_result, t_kernel3, stride=1, padding=2, groups=num_channels
-        )
+        t_result = F.conv2d(t_result, t_kernel3, stride=1, padding=2, groups=num_channels)
     return t_result
 
 

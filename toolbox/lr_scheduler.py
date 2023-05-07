@@ -8,11 +8,7 @@ class Step(LR_Scheduler):
         self.initial = cfg.initial
         self.interval = cfg.interval
         self.factor = cfg.factor
-        print(
-            "[Step LR Scheduler] init: {}; interval: {}; factor: {}".format(
-                self.initial, self.interval, self.factor
-            )
-        )
+        print("[Step LR Scheduler] init: {}; interval: {}; factor: {}".format(self.initial, self.interval, self.factor))
 
     def __call__(self, epoch):
         return self.initial * (self.factor ** (epoch // self.interval))

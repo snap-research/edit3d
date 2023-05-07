@@ -19,9 +19,7 @@ def get_args():
     # Resume:
     parser.add_argument("--resume", default=False, action="store_true")
 
-    parser.add_argument(
-        "--pretrained", default=None, type=str, help="pretrained model checkpoint"
-    )
+    parser.add_argument("--pretrained", default=None, type=str, help="pretrained model checkpoint")
 
     # For easy debugging:
     parser.add_argument("--test_run", default=False, action="store_true")
@@ -57,15 +55,9 @@ def get_args():
     cfg_file_name = os.path.splitext(os.path.basename(args.config))[0]
     run_time = time.strftime("%Y-%b-%d-%H-%M-%S")
     # Currently save dir and log_dir are the same
-    config.log_name = "{}/{}{}_{}".format(
-        args.logdir, log_prefix, cfg_file_name, run_time
-    )
-    config.save_dir = "{}/{}{}_{}/checkpoints".format(
-        args.logdir, log_prefix, cfg_file_name, run_time
-    )
-    config.log_dir = "{}/{}{}_{}".format(
-        args.logdir, log_prefix, cfg_file_name, run_time
-    )
+    config.log_name = "{}/{}{}_{}".format(args.logdir, log_prefix, cfg_file_name, run_time)
+    config.save_dir = "{}/{}{}_{}/checkpoints".format(args.logdir, log_prefix, cfg_file_name, run_time)
+    config.log_dir = "{}/{}{}_{}".format(args.logdir, log_prefix, cfg_file_name, run_time)
     os.makedirs(os.path.join(config.log_dir, "config"))
     os.makedirs(config.save_dir)
     copy2(args.config, os.path.join(config.log_dir, "config"))
@@ -176,9 +168,7 @@ def main(args, cfg):
 
             # visualize the generated sdf
             im_data = trainer.sample_images(data)
-            renders = torch.from_numpy(np.array(im_data["render_sdf"])).permute(
-                0, 3, 1, 2
-            )
+            renders = torch.from_numpy(np.array(im_data["render_sdf"])).permute(0, 3, 1, 2)
             grid_sample = torchvision.utils.make_grid(renders)
             writer.add_image("render_samples", grid_sample, step_cnt)
 

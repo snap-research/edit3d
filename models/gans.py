@@ -73,43 +73,23 @@ class Generator(nn.Module):
 
         x = self.convT1(x)
         x = self.bn1(x)
-        x = (
-            F.leaky_relu(x, 0.2, inplace=True)
-            if leaky_relu
-            else F.relu(x, inplace=True)
-        )
+        x = F.leaky_relu(x, 0.2, inplace=True) if leaky_relu else F.relu(x, inplace=True)
 
         x = self.convT2(x)
         x = self.bn2(x)
-        x = (
-            F.leaky_relu(x, 0.2, inplace=True)
-            if leaky_relu
-            else F.relu(x, inplace=True)
-        )
+        x = F.leaky_relu(x, 0.2, inplace=True) if leaky_relu else F.relu(x, inplace=True)
 
         x = self.convT3(x)
         x = self.bn3(x)
-        x = (
-            F.leaky_relu(x, 0.2, inplace=True)
-            if leaky_relu
-            else F.relu(x, inplace=True)
-        )
+        x = F.leaky_relu(x, 0.2, inplace=True) if leaky_relu else F.relu(x, inplace=True)
 
         x = self.convT4(x)
         x = self.bn4(x)
-        x = (
-            F.leaky_relu(x, 0.2, inplace=True)
-            if leaky_relu
-            else F.relu(x, inplace=True)
-        )
+        x = F.leaky_relu(x, 0.2, inplace=True) if leaky_relu else F.relu(x, inplace=True)
 
         x = self.convT5(x)
         x = self.bn5(x)
-        x = (
-            F.leaky_relu(x, 0.2, inplace=True)
-            if leaky_relu
-            else F.relu(x, inplace=True)
-        )
+        x = F.leaky_relu(x, 0.2, inplace=True) if leaky_relu else F.relu(x, inplace=True)
 
         x = self.convT6(x)  # 128x128
 

@@ -32,9 +32,7 @@ def render_all(trainer, feat_shape, feat_color):
 def render_batch(trainer, feat_shape, feat_color, path):
     out = []
     for i in range(min(16, feat_shape.size(0))):
-        rgb, shape, sketch = render_all(
-            trainer, feat_shape[i : i + 1], feat_color[i : i + 1]
-        )
+        rgb, shape, sketch = render_all(trainer, feat_shape[i : i + 1], feat_color[i : i + 1])
         out.append(cv2.hconcat([rgb, shape, sketch]))
     out = cv2.vconcat(out)
     cv2.imwrite(path, out)
@@ -124,9 +122,7 @@ class Discriminator(nn.Module):
 
 parser = argparse.ArgumentParser(description="Few-shot shape generation")
 parser.add_argument("config", type=str, help="The configuration file.")
-parser.add_argument(
-    "--pretrained", default=None, type=str, help="pretrained MM-VADs checkpoint"
-)
+parser.add_argument("--pretrained", default=None, type=str, help="pretrained MM-VADs checkpoint")
 parser.add_argument("--outf", default=None, type=str)
 parser.add_argument("--code", default="shape", choices=["shape", "color", "both"])
 parser.add_argument("--dataset", default="armchair", type=str)
@@ -199,9 +195,7 @@ if TRAIN_STAGE:
     if args.nimgs != -1:
         dataset = torch.utils.data.Subset(dataset, range(args.nimgs))
     print("Number of images: %d" % len(dataset))
-    dataloader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, shuffle=True, num_workers=1
-    )
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
     # define discriminator
     netD = Discriminator().to(device)
@@ -209,13 +203,9 @@ if TRAIN_STAGE:
 
     # optimizer
     if args.code == "shape":
-        optimizerM = optim.Adam(
-            netM.shape_miner.parameters(), lr=args.lr, betas=(0.99, 0.999)
-        )
+        optimizerM = optim.Adam(netM.shape_miner.parameters(), lr=args.lr, betas=(0.99, 0.999))
     elif args.code == "color":
-        optimizerM = optim.Adam(
-            netM.color_miner.parameters(), lr=args.lr, betas=(0.99, 0.999)
-        )
+        optimizerM = optim.Adam(netM.color_miner.parameters(), lr=args.lr, betas=(0.99, 0.999))
     elif args.code == "both":
         optimizerM = optim.Adam(
             list(netM.color_miner.parameters()) + list(netM.shape_miner.parameters()),
@@ -246,9 +236,7 @@ if TRAIN_STAGE:
             netD.zero_grad()
             real_cpu = data[0].to(device)
             batch_size = real_cpu.size(0)
-            label = torch.full(
-                (batch_size,), real_label, dtype=real_cpu.dtype, device=device
-            )
+            label = torch.full((batch_size,), real_label, dtype=real_cpu.dtype, device=device)
 
             output = netD(real_cpu)
             errD_real = criterion(output, label)

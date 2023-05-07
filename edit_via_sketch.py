@@ -10,9 +10,15 @@ import importlib
 import cv2
 import glob
 import time
+import logging
+
+log_level = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(level=logging.getLevelName(log_level))
+
+logger = logging.getLogger(__name__)
 
 
-def save(trainer, latent, source, target, outdir, imname, save_ply=False):
+def save(trainer, latent, target, outdir, imname, save_ply=False):
     """Save 2D and 3D modalities after editing"""
     colormesh_filename = os.path.join(outdir, imname)
     latent_filename = os.path.join(outdir, imname + ".pth")
@@ -130,30 +136,22 @@ def get_mask(source, target):
     return mask
 
 
-def edit(trainer, init_latent, source, target, epoch, trial, gamma, beta):
+def edit(trainer, init_latent, source, target, epoch, gamma, beta):
     since = time.time()
     init_shape, init_color = init_latent
     mask = get_mask(source, target)
-    latent, loss = trainer.step_edit_sketch(
-        init_shape, target, mask=mask, epoch=epoch, gamma=gamma, beta=beta
-    )
-    print(f"Editing shape takes {time.time() - since} seconds")
+    latent, loss = trainer.step_edit_sketch(init_shape, target, mask=mask, epoch=epoch, gamma=gamma, beta=beta)
+    logger.info(f"Editing shape takes {time.time() - since} seconds")
     return latent, init_color  # here the latent contains multiple snapshot
 
 
 def get_args():
     parser = argparse.ArgumentParser(description="Reconstruction")
     parser.add_argument("config", type=str, help="The configuration file.")
-    parser.add_argument(
-        "--pretrained", default=None, type=str, help="pretrained model checkpoint"
-    )
+    parser.add_argument("--pretrained", default=None, type=str, help="pretrained model checkpoint")
     parser.add_argument("--outdir", default=None, type=str, help="path of output")
-    parser.add_argument(
-        "--category", default="airplane", type=str, help="path of output"
-    )
-    parser.add_argument(
-        "--imagelist", default=None, type=str, help="a text file the lists image"
-    )
+    parser.add_argument("--category", default="airplane", type=str, help="path of output")
+    parser.add_argument("--imagelist", default=None, type=str, help="a text file the lists image")
     parser.add_argument("--trial", default=20, type=int)
     parser.add_argument("--editid", default=1, type=int)
     parser.add_argument("--beta", default=0.5, type=float)
@@ -220,15 +218,15 @@ def main(args, cfg):
     elif args.category == "chair":
         prefix = "sketch-F-2"
     else:
-        print("No such category")
-        exit()
+        logger.error("Only airplane and chair are supported catefories")
+        raise Exception("No such category")
 
     for imname in os.listdir(source_dir):
 
         source_path = os.path.join(source_dir, imname)
-        print("Edit 3D from %s ..." % source_path)
+        logger.info("Edit 3D from %s ..." % source_path)
         for editid in range(1, 10):
-            print(editid)
+            logger.debug(editid)
             data = load_image_and_sketch(source_dir, editid, prefix)
             if data is None or (imname not in trainer.sid2idx.keys()):
                 continue
@@ -249,7 +247,6 @@ def main(args, cfg):
                 data["source"],
                 data["target"],
                 args.epoch,
-                args.trial,
                 args.gamma,
                 args.beta,
             )
@@ -257,7 +254,6 @@ def main(args, cfg):
                 save(
                     trainer,
                     (latent_snap, color_code),
-                    data["source"],
                     data["target"],
                     targetdir,
                     imname + f"_{iteration}",

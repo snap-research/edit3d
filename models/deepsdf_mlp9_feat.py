@@ -79,9 +79,7 @@ class Decoder(nn.Module):
                 nn.utils.weight_norm(nn.Linear(feat_ch, feat_ch)),
                 nn.ReLU(inplace=True),
             )
-            self.out = nn.Sequential(
-                nn.Dropout(dropout_prob, inplace=False), nn.Linear(feat_ch, out_ch)
-            )
+            self.out = nn.Sequential(nn.Dropout(dropout_prob, inplace=False), nn.Linear(feat_ch, out_ch))
 
         num_params = sum(p.numel() for p in self.parameters())
         print("[num parameters: {}]".format(num_params))

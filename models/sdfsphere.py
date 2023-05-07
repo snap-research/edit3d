@@ -15,11 +15,7 @@ class SDFFun(nn.Module):
         self.return_idx = cfg.return_idx
         self.smooth = cfg.smooth
         self.smooth_factor = cfg.smooth_factor
-        print(
-            "[SdfSphere] return idx: {}; smooth: {}".format(
-                self.return_idx, self.smooth
-            )
-        )
+        print("[SdfSphere] return idx: {}; smooth: {}".format(self.return_idx, self.smooth))
 
     # assume we use Sphere primitive for everything
     # parameters: radius[r], center[xyz]
@@ -28,9 +24,7 @@ class SDFFun(nn.Module):
         x = x.unsqueeze(-2)  # B N 1 3
         p = p.unsqueeze(-3)  # B 1 M 4
         logr = p[:, :, :, 0]
-        d = torch.sqrt(torch.sum((x - p[:, :, :, 1:4]) ** 2, dim=-1)) - torch.exp(
-            logr
-        )  # B N M
+        d = torch.sqrt(torch.sum((x - p[:, :, :, 1:4]) ** 2, dim=-1)) - torch.exp(logr)  # B N M
         if self.return_idx:
             d, loc = torch.min(d, dim=-1, keepdim=True)
             return d, loc
