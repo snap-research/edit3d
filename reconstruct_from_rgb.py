@@ -8,9 +8,15 @@ import argparse
 import yaml
 import importlib
 import cv2
-import glob 
+import logging
 
-def save(trainer, latent, target, mask, outdir, imname):
+log_level = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(level=logging.getLevelName(log_level))
+
+logger = logging.getLogger(__name__)
+device = torch.device("cuda:0" if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
+
+def save(trainer, latents, target, mask, outdir, imname):
     # mesh_filename = os.path.join(outdir, imname)
     colormesh_filename = os.path.join(outdir, imname)
     latent_filename = os.path.join(outdir, imname + '.pth')
@@ -19,7 +25,7 @@ def save(trainer, latent, target, mask, outdir, imname):
     pred_3D_filename = os.path.join(outdir, imname + '_3D.png')
     target_filename = os.path.join(outdir, imname + '_target.png')
     masked_target_filename = os.path.join(outdir, imname + '_masked_target.png')
-    shape_code, color_code = latent
+    shape_code, color_code = latents
     #with torch.no_grad():
     #    deep_sdf.mesh.create_mesh(trainer.deepsdf_net, shape_code, mesh_filename, 
     #                              N=256, max_batch=int(2 ** 18))
@@ -27,7 +33,7 @@ def save(trainer, latent, target, mask, outdir, imname):
         deep_sdf.colormesh.create_mesh(trainer.deepsdf_net, trainer.colorsdf_net, 
             shape_code, color_code, colormesh_filename, N=256, max_batch=int(2 ** 18))
     
-    torch.save(latent, latent_filename) 
+    torch.save(latents, latent_filename)
     pred_rgb = trainer.render_color2d(color_code, shape_code)
     save_image(pred_rgb, pred_rgb_filename)
 
@@ -42,7 +48,7 @@ def save(trainer, latent, target, mask, outdir, imname):
     if mask is not None:
         save_image(np.moveaxis((mask*target).squeeze().cpu().numpy(),0,-1),masked_target_filename)
 
-def is_exist(outdir, imname):
+def exists(outdir, imname):
     mesh_filename = os.path.join(outdir, imname)
     latent_filename = os.path.join(outdir, imname + '.pth')
     pred_rgb_filename = os.path.join(outdir, imname + '_rgb.png')
@@ -169,12 +175,12 @@ def main(args, cfg):
         mask[:, first:first+length, :] = 1
     else: # reconstruct from full views
         mask = None
-    latent = reconstruct(trainer, target, mask, args.epoch, args.trial, args.gamma, args.beta)
-    for idx, latent in enumerate(latents):
-        try:
-            save(trainer, latent, target, mask, args.outdir, imname)
-        except Exception:
-            pass
+    latents = reconstruct(trainer, target, mask, args.epoch, args.trial, args.gamma, args.beta)
+    # for idx, latent in enumerate(latents):
+    try:
+        save(trainer, latents, target, mask, args.outdir, imname)
+    except Exception:
+        logger.error("Could not save output.", exc_info=True)
 
 if __name__ == "__main__":
     args, cfg = get_args()
