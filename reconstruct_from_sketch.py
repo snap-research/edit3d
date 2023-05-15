@@ -15,7 +15,7 @@ import sys
 from edit3d import device, logger
 from edit3d.models import deep_sdf
 from edit3d.utils.utils import dict2namespace
-from reconstruct_from_rgb import head_tail
+from edit3d.reconstruct_from_rgb import head_tail
 
 
 def save(trainer, latent, target, mask, outdir, imname, batch_size):
@@ -77,12 +77,13 @@ def reconstruct(trainer, target, mask, epoch, trial, gamma, beta, K=5):
     latents = []
     losses = []
     for i in range(trial):  # multi-trial latent optimization
-        init_latent = torch.randn_like(template).to(edit3d.device)
+        init_latent = torch.randn_like(template).to(device)
         latent, loss = trainer.step_manip_sketch(init_latent, target, mask=mask, epoch=epoch, gamma=gamma, beta=beta)
         latents.append(latent[-1])
         losses.append(loss)
     # get the top K latent
-    losses = np.array(losses)
+    with torch.no_grad():
+        losses = np.array(losses)
     indices = losses.argsort()[-K:]
     best_latents = [latents[idx] for idx in indices]
     return best_latents

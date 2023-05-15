@@ -5,8 +5,8 @@ import os
 import torch
 import torch.nn.functional as F
 
-import models.embeddings
-import toolbox.lr_scheduler
+import edit3d.models.embeddings
+import edit3d.toolbox.lr_scheduler
 from edit3d.trainers.base_trainer import BaseTrainer
 from edit3d.trainers.losses import laploss
 
@@ -27,7 +27,8 @@ class Trainer(BaseTrainer):
         # deepsdf model
         deepsdf_lib = importlib.import_module(cfg.models.deepsdf.type)
         self.deepsdf_net = deepsdf_lib.Decoder(cfg.models.deepsdf)
-        self.deepsdf_net.to(self.device)
+        if device == torch.device("cuda:0"):
+            self.deepsdf_net.to(self.device)
         print("ShapeSDF Net:")
         print(self.deepsdf_net)
         # Init loss functions
@@ -80,7 +81,7 @@ class Trainer(BaseTrainer):
 
     # Init training-specific contexts
     def _get_latent(self, cfg, N):
-        embedding = getattr(models.embeddings, cfg.type)
+        embedding = getattr(edit3d.models.embeddings, cfg.type)
         embedding_instance = embedding(cfg, N=N, dim=cfg.dim).to(self.device)
         return embedding_instance
 
@@ -127,7 +128,7 @@ class Trainer(BaseTrainer):
             raise NotImplementedError("Unknow optimizer: {}".format(cfg.type))
         scheduler = None
         if hasattr(cfg, "lr_scheduler"):
-            scheduler = getattr(toolbox.lr_scheduler, cfg.lr_scheduler.type)(cfg.lr_scheduler)
+            scheduler = getattr(edit3d.toolbox.lr_scheduler, cfg.lr_scheduler.type)(cfg.lr_scheduler)
         return optim, scheduler
 
     # lr schedule
@@ -160,25 +161,25 @@ class Trainer(BaseTrainer):
     def _get_lossfun(self, cfg):
         print(cfg)
         if cfg.type.lower() == "clamped_l1":
-            from models.lossfuns import clamped_l1
+            from edit3d.models.lossfuns import clamped_l1
 
             lossfun = lambda pred, gt: torch.mean(clamped_l1(pred, gt, trunc=cfg.trunc), dim=-1)
         elif cfg.type.lower() == "clamped_l1_correct":
-            from models.lossfuns import clamped_l1_correct as clamped_l1
+            from edit3d.models.lossfuns import clamped_l1_correct as clamped_l1
 
             lossfun = lambda pred, gt: clamped_l1(pred, gt, trunc=cfg.trunc)
         elif cfg.type.lower() == "l1":
             lossfun = lambda pred, gt: torch.mean(torch.abs(pred - gt), dim=-1)
         elif cfg.type.lower() == "onesided_l2":
-            from models.lossfuns import onesided_l2
+            from edit3d.models.lossfuns import onesided_l2
 
             lossfun = onesided_l2
         elif cfg.type.lower() == "mse":
-            from models.lossfuns import mse
+            from edit3d.models.lossfuns import mse
 
             lossfun = mse
         elif cfg.type.lower() == "binary_cross_entropy":
-            from models.lossfuns import binary_cross_entropy
+            from edit3d.models.lossfuns import binary_cross_entropy
 
             lossfun = binary_cross_entropy
         else:
@@ -423,7 +424,7 @@ class Trainer(BaseTrainer):
         latent_codes_fine_shape = feat_shape.to(self.device)
         latent_codes_fine_color = feat_color.to(self.device)
         if not hasattr(self, "renderer"):
-            from toolbox.colorsdf_renderer import SDFRenderer
+            from edit3d.toolbox.colorsdf_renderer import SDFRenderer
 
             renderer = SDFRenderer(self.cfg.render_web, self.device)
         self.eval()

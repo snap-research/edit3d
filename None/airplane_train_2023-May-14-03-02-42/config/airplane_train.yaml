@@ -2,8 +2,8 @@ resume:
     dir:
     
 data:
-    type: edit3d.multimodal
-    cate_id: "02691156" # airplane
+    type: datasets.multimodal
+    cate_id: "02691156" 
     sketch_name: "sketch-T-2.png"
     split_files:
         train: ./datasets/splits/sv2_planes_train.json
@@ -33,8 +33,10 @@ data:
         imsize: 128  
 
 trainer:
-    type: edit3d.trainers.demo_multimodal
+    type: edit3d.trainers.trainer_multimodal
+
     latent_dim: 128
+
     latent_code_shape:
         dim: 128
         type: VADLogVar
@@ -141,7 +143,8 @@ trainer:
         weight: 0.1
 
     mixture_loss: True # use proper mixture-of-experts loss instead of approximaton
-    epochs: 2800
+    # epochs: 2800
+    epochs: 1
     
 viz:
   log_interval: 1
@@ -158,7 +161,7 @@ render:
     sdf_clamp: 0.05
     sdf_gain: 1
     numerical_normal: False
-    resolution: [256, 256]
+    resolution: [480, 480]
     steps: 96
     fg_color: [0.99609375, 0.89453125, 0.796875] # [255 / 256, 229 / 256, 204 / 256]
     bg_color: [1.0, 1.0, 1.0]
@@ -175,7 +178,7 @@ render_web:
     sdf_clamp: 0.08
     sdf_gain: 1
     numerical_normal: False
-    resolution: [128, 128] # Lower resolution for web demo
+    resolution: [200, 200] # Lower resolution for web demo
     steps: 64
     fg_color: [0.99609375, 0.89453125, 0.796875] # [255 / 256, 229 / 256, 204 / 256]
     bg_color: [1.0, 1.0, 1.0]
@@ -190,34 +193,13 @@ manip:
         fix_var: False
         augment_latent: False
         sample_twice: False
-
     optim:
         type: Adam
-        # lr: 1.e-1 # for VAD_logvar, one step per epoch
-        lr: 1 # for VAD_logvar, one step per epoch
+        lr: 1.e-1 # for VAD_logvar, one step per epoch
         betas: [0.9, 0.999]
         eps: 1.e-8
         weight_decay: 0
-        lr_scheduler:
-            type: Step
-            # initial: 1.e-1
-            initial: 1 # for VAD_logvar, one step per epoch
-            interval: 2
-            factor: 0.5
-    optim_rgb:
-        type: Adam
-        # lr: 1.e-1 # for VAD_logvar, one step per epoch
-        lr: 1 # for VAD_logvar, one step per epoch
-        betas: [0.9, 0.999]
-        eps: 1.e-8
-        weight_decay: 0
-        lr_scheduler:
-            type: Step
-            # initial: 1.e-1
-            initial: 1 # for VAD_logvar, one step per epoch
-            interval: 2
-            factor: 0.5
-
+        
 val:
     latent_code:
         type: VADLogVar

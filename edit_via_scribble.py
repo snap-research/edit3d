@@ -77,7 +77,7 @@ def save_init(trainer, latent, outdir, imname):
             color_code,
             colormesh_filename,
             N=256,
-            max_batch=int(2 ** 18),
+            max_batch=int(2 ** 18),device=device
         )
     pred_3D = trainer.render_express(shape_code, color_code, resolution=512)
     pred_3D = cv2.cvtColor(pred_3D, cv2.COLOR_RGB2BGR)
@@ -161,6 +161,7 @@ def edit(trainer, init_latent, target, mask, epoch, trial, gamma, beta):
 def load_image_and_scribble(source_path, target_path, part_list, use_target=True):
 
     imagelist = glob.glob(os.path.join(source_path, "*Layer-*.png"))
+    # print(source_path)
     if len(imagelist) == 0:
         return None
     masks = []
@@ -236,9 +237,11 @@ def main(args, cfg):
     for k, v in trainer.sid2idx.items():
         idx2sid[v] = k
     trainer.eval()
-    source_dir = os.path.join(args.source_dir, "source")
+    # source_dir = os.path.join(args.source_dir, "source")
+    source_dir=args.source_dir
     target_dir = os.path.join(args.source_dir, "target")
-
+    print(source_dir)
+    print(target_dir)
     os.makedirs(args.outdir, exist_ok=True)
 
     # part_list: the id indicates the semantic parts
@@ -272,17 +275,19 @@ def main(args, cfg):
     os.makedirs(targetdir, exist_ok=True)
     target_path = os.path.join(target_dir, imname)
     print("Edit 3D from %s ..." % imname)
-    source_latent = trainer.get_known_latent(trainer.sid2idx[imname])
-
+    if imname in trainer.sid2idx:
+        source_latent = trainer.get_known_latent(trainer.sid2idx[imname])
+    else: source_latent=(0,0)
     # save init
     initdir = os.path.join(targetdir, "init")
     os.makedirs(initdir, exist_ok=True)
-    save_init(trainer, source_latent, initdir, imname)
+    # save_init(trainer, source_latent, initdir, imname)
 
     # randomize the color of scribbles
     randdir = os.path.join(targetdir, "rand")
     os.makedirs(randdir, exist_ok=True)
     for k in range(30):
+        print(k)
         data = load_image_and_scribble(source_path, target_path, part_list, use_target=False)
         source_latent = trainer.get_known_latent(trainer.sid2idx[imname])
         edit_latent = edit(
@@ -331,6 +336,6 @@ if __name__ == "__main__":
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
-    args, cfg = dict2namespace(config)
+    config = dict2namespace(config)
 
-    main(args, cfg)
+    main(args, config)

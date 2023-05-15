@@ -54,8 +54,9 @@ def create_mesh(decoder, latent_vec, filename, N=256, max_batch=32 ** 3, offset=
         )
         head += max_batch
         del sample_subset
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
+        if device == CUDA_DEVICE:
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
 
     sdf_values = samples[:, 3]
     sdf_values = sdf_values.reshape(N, N, N)
@@ -95,7 +96,7 @@ def convert_sdf_samples_to_ply(
 
     numpy_3d_sdf_tensor = pytorch_3d_sdf_tensor.numpy()
 
-    verts, faces, normals, values = skimage.measure.marching_cubes_lewiner(
+    verts, faces, normals, values = skimage.measure.marching_cubes(
         numpy_3d_sdf_tensor, level=0.0, spacing=[voxel_size] * 3
     )
 

@@ -7,8 +7,8 @@ import lpips
 import torch
 
 import edit3d
-from models.clip_loss import CLIPLoss
-from trainers.trainer_multimodal import Trainer as CrossModalTrainer
+from edit3d.models.clip_loss import CLIPLoss
+from edit3d.trainers.trainer_multimodal import Trainer as CrossModalTrainer
 
 
 class Trainer(CrossModalTrainer):
@@ -372,7 +372,7 @@ class Trainer(CrossModalTrainer):
         latent_codes_fine_shape = feat_shape.to(self.device)
         latent_codes_fine_color = feat_color.to(self.device)
         if not hasattr(self, "renderer"):
-            from toolbox.colorsdf_renderer import SDFRenderer
+            from edit3d.toolbox.colorsdf_renderer import SDFRenderer
 
             renderer = SDFRenderer(self.cfg.render_web, self.device, colorize)
         self.eval()
@@ -430,3 +430,4 @@ class Trainer(CrossModalTrainer):
         self.prep_train()
         self.load_state_dict(ckpt["trainer_state_dict"], strict=False)
         self.sid2idx = ckpt["shapeid2idx"]
+        # print(self.sid2idx)

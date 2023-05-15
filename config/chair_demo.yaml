@@ -33,7 +33,7 @@ data:
         imsize: 128  
 
 trainer:
-    type: trainers.demo_multimodal
+    type: edit3d.trainers.demo_multimodal
 
     latent_dim: 128
 
@@ -242,7 +242,7 @@ val:
 
 models:
     deepsdf:
-        type: models.deepsdf_mlp9_feat
+        type: edit3d.models.deepsdf_mlp9_feat
         dropout: True
         dropout_prob: 0.2
         use_tanh: True
@@ -252,28 +252,28 @@ models:
         feat_layer: 2
 
     colorsdf:
-        type: models.colorsdf_mlp9
+        type: edit3d.models.colorsdf_mlp9
         use_tanh: True
         hidden_ch: 512
         color_in_ch: 643 # 128 + 3 + 512
         out_ch: 3
 
     im_gen: # sketch
-        type: models.image_cnn
+        type: edit3d.models.image_cnn
         in_ch: 128
         out_ch: 16384 # 128 * 128
         hidden_ch: 512
         RGB: False
 
     color_gen: # color image
-        type: models.image_cnn_color
+        type: edit3d.models.image_cnn_color
         in_ch:  256 # 128 + 128
         out_ch: 16384 # 128 * 128
         hidden_ch: 512
         RGB: True
 
     prim_attr:
-        type: models.deepsdf_mlp9
+        type: edit3d.models.deepsdf_mlp9
         dropout: False
         dropout_prob:
         use_tanh: False
@@ -282,7 +282,7 @@ models:
         hidden_ch: 512
 
     prim_sdf:
-        type: models.sdfsphere
+        type: edit3d.models.sdfsphere
         smooth: True
         smooth_factor: 100
         return_idx: False
