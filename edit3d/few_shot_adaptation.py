@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import logging
 import os
 
 import cv2
@@ -12,8 +13,9 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import yaml
 
-from edit3d import logger
 from edit3d.utils.utils import dict2namespace
+
+logger = logging.getLogger(__name__)
 
 
 def render_all(trainer, feat_shape, feat_color):

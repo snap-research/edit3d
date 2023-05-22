@@ -1,18 +1,18 @@
 resume:
     dir:
-    
+
 data:
-    type: datasets.multimodal
+    type: edit3d.multimodal
     cate_id: "02691156" 
     sketch_name: "sketch-T-2.png"
     split_files:
         train: ./datasets/splits/sv2_planes_train.json
         test: ./datasets/splits/sv2_planes_test.json
     sdf_data_dir:
-        surface: ./datasets/airplanes/02691156_colorsdf/02691156_npy_surface
-        sphere:  ./datasets/airplanes/02691156_colorsdf/02691156_npy_sphere 
-        sketch:  ./datasets/airplanes/02691156_sketch
-        color:   ./datasets/airplanes/02691156_randcolor
+        surface: ./datasets/sdf/03001627_surface
+        sphere: ./datasets/sdf/03001627_sphere
+        sketch: ./datasets/sdf/03001627_sketch
+        color: ./datasets/sdf/03001627_color
     train:
         num_sample_points:
             fine: 2048
@@ -33,7 +33,7 @@ data:
         imsize: 128  
 
 trainer:
-    type: trainers.trainer_multimodal
+    type: edit3d.trainers.trainer_multimodal
 
     latent_dim: 128
 
@@ -143,7 +143,7 @@ trainer:
         weight: 0.1
 
     mixture_loss: True # use proper mixture-of-experts loss instead of approximaton
-    epochs: 2800
+    epochs: 200
     
 viz:
   log_interval: 1

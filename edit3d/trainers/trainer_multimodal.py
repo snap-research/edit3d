@@ -256,7 +256,7 @@ class Trainer(BaseTrainer):
 
     def step(self, data):
 
-        data_ids = data["shape_ids"]
+        # data_ids = data["shape_ids"]
         data_f = data["surface_samples"].to(self.device, non_blocking=True)  # [64 2048 7] xyzd+rgb
         data_indices = data["shape_indices"].squeeze(-1).to(self.device, non_blocking=True)  # [64]
         data_sketch = data["sketch"].to(self.device, non_blocking=True)
@@ -437,7 +437,7 @@ class Trainer(BaseTrainer):
 
     # save checkpoints
     def save(self, epoch, step):
-        save_name = "epoch_{}_iters_{}.pth".format(epoch, step)
+        save_name = f"epoch_{epoch}_iters_{step}.pth"
         path = os.path.join(self.cfg.save_dir, save_name)
         torch.save(
             {

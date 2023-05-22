@@ -2,17 +2,19 @@ resume:
     dir:
     
 data:
-    type: datasets.multimodal
+    type: edit3d.multimodal
     cate_id: "03001627" # Chair
-    sketch_name: "sketch-F-2.png"
+#    sketch_name: "sketch-F-2.png"
     split_files:
-        train: ./datasets/splits/sv2_chairs_train.json
-        test: ./datasets/splits/sv2_chairs_test.json
+#        train: ./datasets/splits/sv2_chairs_train.json
+#        test: ./datasets/splits/sv2_chairs_test.json
+        train: ./datasets/splits/sv2_chairs_train_small.json
+        test: ./datasets/splits/sv2_chairs_test_small.json
     sdf_data_dir:
-        surface: ./datasets/chairs/03001627_colorsdf/03001627_npy_surface
-        sphere: ./datasets/chairs/03001627_colorsdf/03001627_npy_sphere 
-        sketch: ./datasets/chairs/03001627_sketch
-        color: ./datasets/chairs/03001627_randcolor2
+        surface: ./datasets/chairs/chairs_surface
+        sphere: ./datasets/chairs/chairs_sphere
+        sketch: ./datasets/chairs/chairs_sketch
+        color: ./datasets/chairs/chairs_color
     train:
         num_sample_points:
             fine: 2048
@@ -143,7 +145,7 @@ trainer:
         weight: 0.1
 
     mixture_loss: True # use proper mixture-of-experts loss instead of approximaton
-    epochs: 2800
+    epochs: 10
     
 viz:
   log_interval: 1
