@@ -41,14 +41,35 @@ make edit_via_sketch
 ```
 #### Color editing via 2D scribbles 
 
+For chair: 
 ```
-python edit3d/edit_via_scribble.py ./config/airplane_demo.yaml --pretrained path/to/pretrained/model --outdir path/to/output --source_dir path/to/target-images --epoch 5  --trial 1 --category airplane --partid 3 
+python edit3d/edit_via_scribble.py ./config/chair_demo.yaml --imagenum 1 --partid 1
+
 ```
-Note: `--partid` indicates the list of semantic parts where the scribbles are drawn.
-or
+
+For airplane: 
 ```
-make edit_via_scribble
+python edit3d/edit_via_scribble.py ./config/airplane_demo.yaml --imagenum 1 --partid 1
+
 ```
+```
+partid
+    for chairs:
+        1: seat
+        2: seat+arm
+        3: seat+back
+
+    for airplane:
+        1: body only
+        2: body+wings
+
+```
+`--save_mesh`: sets whether to save 3d mesh
+
+`--imagenum`: 1: chair, 2: couch chair, 3,4: airplanes
+
+`--colors`: 0: random, 1:blue+lime, 2: red+blue, 3: magenta+lightblue 
+
 #### Shape reconstruction from 2D sketches 
 
 ```

@@ -55,6 +55,7 @@ def save(
                 N=256,
                 max_batch=int(2 ** 18),
             )
+            
     resolution=64
     # torch.save(latent, latent_filename)
     pred_3D = trainer.render_express(shape_code, color_code, resolution=resolution)
@@ -170,7 +171,7 @@ def edit(trainer, init_latent, target, mask, epoch=101, trial=1):
 
 
 
-def load_image_and_scribble(source_path, target_path, part_list, use_target=True,bgrs=[]):
+def load_image_and_scribble(source_path, target_path, part_list, use_target=True,colorcomb=0):
     print(source_path)
     imagelist = glob.glob(os.path.join(source_path, "*Layer-*.png"))
     # print(imagelist)
@@ -188,6 +189,15 @@ def load_image_and_scribble(source_path, target_path, part_list, use_target=True
                 break
     if len(masks) == 0:
         return None
+    bgrs = np.random.rand(len(masks), 3)
+    if colorcomb==1: # blue+lime
+        bgrs=[[0.9,0.2,0.2],[0.2,0.2,0.9]]
+    elif colorcomb==2:#red+blue
+        bgrs=[[0.2,0.2,0.9],[0.2,0.9,0.2]]
+    elif colorcomb==3:#magenta+lightblue
+        bgrs=[[0.8,0.1,0.8],[0.1,0.8,0.8]]
+    # 
+    # 
 
     # get a higher resolutional scribble for paper visualization
     masks2 = []
@@ -203,10 +213,7 @@ def load_image_and_scribble(source_path, target_path, part_list, use_target=True
     source_image = os.path.join(source_path, "render_r_000.png")
     source_im = load_image(source_image)
     print(source_im.shape)
-    bgrs = np.random.rand(len(masks), 3)
-    # bgrs=[[0.9,0.2,0.2],[0.2,0.2,0.9]]
-    # bgrs=[[0.2,0.2,0.9],[0.2,0.9,0.2]]
-    bgrs=[[0.8,0.1,0.8],[0.1,0.8,0.8]]
+    
 
     if use_target:  # color source is the reference image
         target_image = os.path.join(target_path, "render_r_000.png")
@@ -255,31 +262,43 @@ def main(args, cfg):
     part_list=[]
 
     imagenum=args.imagenum
+
+
     if imagenum==1:
-        pretrained="data/models/chairs_epoch_2799_iters_280000.pth"
         imagename="308b76aac4b518a43eb67d9fb75cc878"
-        part_list=[2,4]
         category="chair"
     elif imagenum==2:
-        pretrained="data/models/chairs_epoch_2799_iters_280000.pth"
         imagename="1013f70851210a618f2e765c4a8ed3d"
-        part_list=[4,3]
         category="chair"
     elif imagenum==3:
-        pretrained="data/models/airplanes_epoch_2799_iters_156800.pth"
         imagename="10aa040f470500c6a66ef8df4909ded9"
         category="airplane"
-        part_list=[2,3]
     else:
-        pretrained="data/models/airplanes_epoch_2799_iters_156800.pth"
         imagename="10cfc2090a2ade124c3a35cee92bb95b"
         category="airplane"
-        part_list=[2,3]
+
+    partid=args.partid
+    pretrained="data/models/chairs_epoch_2799_iters_280000.pth"
+    if category=="chair":
+        
+        if partid==1:
+            part_list=[3]
+        if partid==2:
+            part_list=[2,3]
+        if partid==3:
+            part_list=[3,4]
+    elif category=="airplane":
+        pretrained="data/models/airplanes_epoch_2799_iters_156800.pth"
+        if partid==1:
+            part_list=[2]
+        if partid==2:
+            part_list=[2,3]
 
     #shared args  ===============================
     source_dir="examples/edit_via_scribble/source"
-    outdir="output/edit_via_scribble/out-part"+str(args.partid)+category+"_"+str(datetime.datetime.now() ).replace(" ","_").replace(":","_")
-    trial=2
+    outdir="output/edit_via_scribble/out/"
+    # outdir="output/edit_via_scribble/out-part"+str(args.partid)+category+"_"+str(datetime.datetime.now() ).replace(" ","_").replace(":","_")
+    trial=3
     save_initial=False
     #==============================
 
@@ -295,7 +314,7 @@ def main(args, cfg):
     # print(args.partid)
     partid=args.partid
     os.makedirs(outdir, exist_ok=True)
-    
+    """
     # part_list: the id indicates the semantic parts
     if category == "airplane" and len(part_list)==0:
         if partid == 0:
@@ -319,7 +338,7 @@ def main(args, cfg):
     else:
         print("No such category")
         exit()
-
+"""
     # edit known shapes (i.e. shapes from the training dataset)
     imname = imagename
     source_path = os.path.join(source_dir, imname)
@@ -340,16 +359,17 @@ def main(args, cfg):
     # randomize the color of scribbles
     randdir = os.path.join(targetdir, "rand")
     os.makedirs(randdir, exist_ok=True)
-    outdir="output/edit_via_scribble/out/"
+    
     imname_out=imname + str(datetime.datetime.now() ).replace(" ","_").replace(":","_")
     # print(part_list)
     # images=list(trainer.sid2idx.keys())
     # print(trainer.sid2idx.keys())
+    
     for k in range(trial):
         print(k)
         # for im in trainer.sid2idx.keys():
             # part_list=random.choice([[2],[2,3],[2,4],[3],[4]])
-        data = load_image_and_scribble(source_path, target_path, part_list, use_target=False)
+        data = load_image_and_scribble(source_path, target_path, part_list,colorcomb=args.colors, use_target=False)
         source_latent = trainer.get_known_latent(trainer.sid2idx[imname])
         print("latentshape")
         print(source_latent[0].shape)
@@ -375,7 +395,7 @@ def main(args, cfg):
             data["color"],
             outdir,
             imname_out + f"_{k}",
-            save_ply=False,
+            save_ply=args.save_mesh,
         )
 
 
@@ -395,9 +415,25 @@ if __name__ == "__main__":
     parser.add_argument("--beta", default=0.5, type=float)
     parser.add_argument("--epoch", default=1001, type=int)
     parser.add_argument("--trial", default=20, type=int)
-    parser.add_argument("--partid", default=4, type=int)
 
-    parser.add_argument("--imagenum", default=1, type=int)
+    #modified arguments==========================================================
+    parser.add_argument("--partid", default=1, type=int)
+    """
+    partid
+    for chairs:
+        1: seat
+        2: seat+arm
+        3: seat+back
+
+    for airplane:
+        1: body only
+        2: body+wings
+    """
+    parser.add_argument("--save_mesh", default=False, help="saves mesh file for result")
+
+    parser.add_argument("--imagenum", default=1, type=int, help="1: chair, 2: couch chair, 3,4: airplanes")
+    parser.add_argument("--colors", default=0, type=int, help="0:random, 1:blue+lime, 2:red+blue, 3:magenta+lightblue ")
+    #==========================================================
 
     args = parser.parse_args()
 
