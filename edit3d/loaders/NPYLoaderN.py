@@ -60,22 +60,23 @@ class NPYLoaderN(Dataset):
             subset_idx = np.random.choice(num_samples, num_sphere_points, replace=True)
             data_sph = data[subset_idx, :]  # xyzd + RGB (-1, -1, -1)
         # combine
-        data_f = np.concatenate([data_sur, data_sph], axis=1)
+        data_f = np.concatenate([data_sur, data_sph], axis=0)
 
         # sketch samples
         data_im = Image.open(sketch_file)
         data_im = self.transform(data_im)  # N*C*H*W
+        data_im = data_im.mean(dim=0).round().unsqueeze(0)  # C is binary black or white.
 
         # color image samples
         data_color = Image.open(color2d_file)
-        data_color = self.transform(data_color)  # N*C*H*W
+        data_color = self.transform(data_color)[0:3]  # N*C*H*W  no alpha channel
 
         idx_t = np.array([idx], dtype=np.longlong)
 
         # the data_f contains xyz+d+rgb
         return {
             "surface_samples": data_f,
-            "sphere_samples": data_sph,
+            # "sphere_samples": np.array([]),
             "sketch": data_im,
             "color_2d": data_color,
             "shape_indices": idx_t,

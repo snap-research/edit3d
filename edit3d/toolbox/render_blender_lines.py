@@ -4,13 +4,16 @@
 # Tested with Blender 2.9
 #
 # Example:
-# blender --background --python mytest.py -- --views 10 /path/to/my.obj
+# blender --background --python edit3d/toolbox/render_blender_lines.py -- --views 1 datasets/splits/sv2_chairs_train_small.json --data_dir ~/data --output_folder datasets/chairs/
 #
 
 import argparse, sys, os, math, re
 import bpy
 import json
+import random
 from glob import glob
+
+import numpy as np
 
 
 def setup(args):
@@ -128,6 +131,12 @@ def add_material(obj, rgba=None, name=None):
     return material
 
 
+def update_materials(obj):
+    set_active_object(obj)
+    for name, _ in obj.material_slots.items():
+        bpy.data.materials[name].use_nodes = False
+        bpy.data.materials[name].diffuse_color = random.choices(range(256), k=3) + [1]
+
 def setup_lights(cam, target_object):
     bpy.ops.object.light_add(type="SUN", location=[0, 0, cam.location[2]])
     overhead_light = bpy.context.object
@@ -165,6 +174,14 @@ def save_images(image_path_prefix, cam_target, views=None):
         bpy.ops.render.render(write_still=True)  # render still
         cam_target.rotation_euler[2] += math.radians(stepsize)
 
+def save_images(image_path_prefix, cam_target, views=None):
+    stepsize = 360.0 / args.views
+    for i in range(0, views):
+        print(f"Rotation {(stepsize * i)}, {math.radians(stepsize * i)}")
+        render_file_path = f"{image_path_prefix}_{int(i * stepsize):03d}".format()
+        bpy.context.scene.render.filepath = render_file_path
+        bpy.ops.render.render(write_still=True)  # render still
+        cam_target.rotation_euler[2] += math.radians(stepsize)
 
 def set_active_object(obj=None):
 
@@ -187,6 +204,30 @@ def get_image_paths(data_dir, split_file):
             else:
                 raise Exception("Split file dataset not supported yet.")
 
+def get_mesh_data(mesh):
+    mverts_co = np.zeros((len(mesh.vertices)*3), dtype=float)
+    mesh.vertices.foreach_get("co", mverts_co)
+    vertices = np.reshape(mverts_co, (len(mesh.vertices), 3))
+    mpoly_co = np.zeros((len(mesh.polygons) * 3), dtype=int)
+    mesh.polygons.foreach_get("vertices", mpoly_co)
+    polygon_idx = np.reshape(mpoly_co, (len(mesh.polygons), 3))
+    polygons = vertices[polygon_idx]
+    material_idx = np.zeros((len(mesh.polygons)*1), dtype=int)
+    mesh.polygons.foreach_get("material_index", material_idx)
+    colors_list = np.array([list(m.diffuse_color) for m in mesh.materials])
+    colors = colors_list[material_idx][:, 0:3]
+    return polygons, colors
+
+def save_meshes(obj, obj_file_path, output_folder):
+    polygons, colors = get_mesh_data(obj.to_mesh())
+    mesh_file_name = f"{os.path.dirname(get_image_path(obj_file_path, output_folder, 'meshes'))}.polygons.npy"
+    print(f"saving to: {mesh_file_name}")
+    if not os.path.exists(os.path.dirname(mesh_file_name)):
+        os.makedirs(os.path.dirname(mesh_file_name))
+    np.save(mesh_file_name, polygons)
+    color_file_name = f"{os.path.dirname(get_image_path(obj_file_path, output_folder, 'meshes'))}.color.npy"
+    np.save(color_file_name, colors)
+
 def delete_object(obj):
     set_active_object(obj).select_set(True)
     bpy.ops.object.delete(use_global=True, confirm=False)
@@ -198,11 +239,13 @@ def main(file_path, output_folder, view_count, import_options, data_dir=None):
     print(files)
     for obj_file_path in files:
         print(f"obj_file_path: {obj_file_path}")
-
         obj = import_obj(obj_file_path, **import_options)
         add_line_art(obj)
-        # save regular color "sketch" views
+        # Assign arbitrary colors to existing materials
+        update_materials(obj)
+        # save color "sketch" views
         save_images(get_image_path(obj_file_path, output_folder, "color"), cam_target, view_count)
+        save_meshes(obj, obj_file_path, output_folder)
         # save B/W "sketch" views
         remove_materials(obj)
         add_material(obj)
@@ -268,4 +311,4 @@ if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:]
     args = parser.parse_args(argv)
     setup(args)
-    main(args.obj, args.output_folder, args.views, import_options=args.__dict__, data_dir=args.data_dir)
+    main(args.obj, args.output_folder.rstrip('/'), args.views, import_options=args.__dict__, data_dir=args.data_dir)
