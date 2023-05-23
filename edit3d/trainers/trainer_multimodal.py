@@ -87,18 +87,22 @@ class Trainer(BaseTrainer):
 
     def prep_train(self):  # czz: assign each instance a unique idx
 
+        # self.cfg.train_shape_ids has content only in demo mode
+        print(len(self.cfg.train_shape_ids))
         self.sid2idx = {k: v for v, k in enumerate(sorted(self.cfg.train_shape_ids))}
         print("[ImGen Trainer] init. #entries in sid2idx: {}".format(len(self.sid2idx)))
 
         # shape embedding
         self.latent_embeddings_shape = self._get_latent(self.cfg.trainer.latent_code_shape, N=len(self.sid2idx))
-        (
+        print(self.latent_embeddings_shape)
+        (   
             self.optim_latentcode_shape,
             self.lrscheduler_latentcode_shape,
         ) = self._get_optim(self.latent_embeddings_shape.parameters(), self.cfg.trainer.optim_latentcode)
 
         # color embedding
         self.latent_embeddings_color = self._get_latent(self.cfg.trainer.latent_code_color, N=len(self.sid2idx))
+
         (
             self.optim_latentcode_color,
             self.lrscheduler_latentcode_color,
@@ -192,7 +196,10 @@ class Trainer(BaseTrainer):
         return data_indices
 
     def _b_idx2latent(self, latent_embeddings, indices, num_augment_pts=None):
+
+        #forward pass VADLogVar Embedding
         batch_latent_dict = latent_embeddings(indices, num_augment_pts=num_augment_pts)
+        
         batch_latent = batch_latent_dict["latent_code"]
         if "mu" in batch_latent_dict.keys() and "logvar" in batch_latent_dict.keys():
             batch_mu = batch_latent_dict["mu"]

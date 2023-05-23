@@ -36,9 +36,12 @@ class VADLogVar(nn.Module):
             self.cfg.logvar_init_mean,
             logvar_init_std,
         )
+        print("vad init")
+        print(self.weight_mu)
 
     def forward(self, idx, **kwargs):
         num_augment_pts = kwargs["num_augment_pts"]
+        
         mu = self.weight_mu[idx]
         logvar = self.weight_logvar[idx]
         if self.cfg.fix_var:

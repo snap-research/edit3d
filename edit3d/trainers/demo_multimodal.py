@@ -10,7 +10,7 @@ import edit3d
 from edit3d.models.clip_loss import CLIPLoss
 from edit3d.trainers.trainer_multimodal import Trainer as CrossModalTrainer
 
-
+import numpy as np
 class Trainer(CrossModalTrainer):
     def set_percept_loss(self, device):
         self.lpips_loss = lpips.LPIPS(net="vgg").to(device)
@@ -48,6 +48,8 @@ class Trainer(CrossModalTrainer):
             return num_known_shapes
         data_indices = torch.tensor([idx], dtype=torch.long, device=self.device)
         # shape
+        print("weight_mu")
+        print(self.latent_embeddings_shape.weight_mu)
         latent_codes_coarse_shape, latent_codes_fine_shape, kld = self._b_idx2latent(
             self.latent_embeddings_shape, data_indices, num_augment_pts=1
         )  # [64 128]
@@ -59,7 +61,8 @@ class Trainer(CrossModalTrainer):
         )  # [64 128]
         loss_kld_color = torch.mean(0.5 * torch.mean(latent_codes_coarse_color ** 2, dim=-1))
         self.stats_loss_kld_color = loss_kld_color.item()
-        return latent_codes_coarse_shape, latent_codes_coarse_color
+
+        return latent_codes_coarse_shape, latent_codes_coarse_color #nx128, nx128
 
     def manip_fun(self, x, target, mask, feat, gamma=0.02, beta=0.5, alphas=[1.0, 1.0, 0.0]):
         loss_kld = torch.mean(0.5 * torch.mean(feat ** 2, dim=-1))
@@ -135,9 +138,23 @@ class Trainer(CrossModalTrainer):
     def recon_fun(self, x, target, mask, feat_shape, feat_color, gamma=0.02, beta=0.5):
         loss_kld = torch.mean(0.5 * torch.mean(feat_shape ** 2, dim=-1))
         loss_kld = gamma * (torch.clamp(loss_kld, beta, None) - beta)
+
         loss_kld2 = torch.mean(0.5 * torch.mean(feat_color ** 2, dim=-1))
         loss_kld2 = gamma * (torch.clamp(loss_kld2, beta, None) - beta)
-        loss_man = torch.mean(torch.abs(x - target) * mask.to(edit3d.device)) + loss_kld + loss_kld2
+        mask=mask.to(edit3d.device)
+        loss_man = torch.mean(torch.abs(x - target) * mask) + loss_kld + loss_kld2
+        return loss_man, loss_kld, loss_kld2
+    
+    def recon_fun_fixed(self,original, x, target, mask, feat_shape, feat_color, gamma=0.02, beta=0.5):
+        loss_kld = torch.mean(0.5 * torch.mean(feat_shape ** 2, dim=-1))
+        loss_kld = gamma * (torch.clamp(loss_kld, beta, None) - beta)
+
+        loss_kld2 = torch.mean(0.5 * torch.mean(feat_color ** 2, dim=-1))
+        loss_kld2 = gamma * (torch.clamp(loss_kld2, beta, None) - beta)
+        mask=mask.to(edit3d.device)
+
+        lam=0.9
+        loss_man = torch.mean(torch.linalg.norm(original - target)**2 * (1-mask)  + torch.abs(x - target)*lam * mask) + loss_kld + loss_kld2
         return loss_man, loss_kld, loss_kld2
 
     def step_recon_rgb(
@@ -183,7 +200,13 @@ class Trainer(CrossModalTrainer):
                 )
             )
         return latent_codes, loss_recon
-
+    def save_img(self,img,name):
+            with torch.no_grad():
+                # image=color_2d.reshape((128,128,3))
+                image=np.moveaxis(img.squeeze().cpu().numpy(), 0, -1)
+                out = np.uint8(image * 255)
+                out = cv2.cvtColor(out, cv2.COLOR_RGB2BGR)
+                cv2.imwrite("output/"+name+".png", out)
     def step_edit_rgb(
         self,
         feat_shape,
@@ -205,10 +228,39 @@ class Trainer(CrossModalTrainer):
         for param in self.colorgen_net.parameters():
             param.requires_grad = False
         target = target.to(self.device)
+        mask_copy=mask
+        target_copy=target
+        self.save_img(target_copy,"target")
+        self.save_img(mask_copy.reshape((1,128,128)).broadcast_to((3,128,128)),"mask")
+        with torch.no_grad():
+            original=self.forward_color2d_grad(latent_codes_color, latent_codes_shape)
         for i in range(epoch):
             optim.zero_grad()
             color_2d = self.forward_color2d_grad(latent_codes_color, latent_codes_shape)
-            loss_recon, loss_kld, loss_kld2 = self.recon_fun(
+
+            
+            mask2=mask
+            with torch.no_grad():
+                bg=3
+             #   print(np.unique(mask))
+                # color_2d_copy=np.sum(color_2d.numpy(),axis=1).squeeze()
+                # print(np.unique(color_2d_copy))
+                # recon_img_mask=(color_2d_copy != bg).astype(int)
+                # print(recon_img_mask.shape)
+                # color_2d = color_2d * recon_img_mask
+                if i%100==0:
+                    self.save_img(color_2d,"epoch"+str(i))
+                # mask2=mask+recon_img_mask
+                # if i>3:
+                    # self.save_img((mask+recon_img_mask).reshape((1,128,128)).broadcast_to((3,128,128)),"mask1")
+                # print(mask2)
+            #color_2d = reconstructed image
+            # target = scribbles including colors
+            # mask = scribbles without colors
+            # latent_codes_color,latent_codes_shape = original image`s latent feature
+
+            loss_recon, loss_kld, loss_kld2 = self.recon_fun_fixed(
+                original,
                 color_2d,
                 target,
                 mask,
@@ -217,6 +269,7 @@ class Trainer(CrossModalTrainer):
                 gamma=gamma,
                 beta=beta,
             )
+            
             loss_recon.backward()
             if i % 100 == 0:
                 print(i, loss_recon.item(), loss_kld.item(), loss_kld2.item())
@@ -419,7 +472,7 @@ class Trainer(CrossModalTrainer):
     def forward_color2d_grad(self, z_color, shape_feat):
         feature = torch.cat([z_color, shape_feat], dim=-1)
         feature = feature.to(self.device)
-        img = self.colorgen_net(feature)
+        img = self.colorgen_net(feature) #decode concatenated features to reconsturct image
         return img
 
     def resume_demo(self, ckpt_path):
@@ -428,6 +481,27 @@ class Trainer(CrossModalTrainer):
 
         self.cfg.train_shape_ids = range(ckpt["trainer_state_dict"]["latent_embeddings_shape.weight_mu"].shape[0])
         self.prep_train()
+        print(ckpt["trainer_state_dict"].keys())
+        """
+        latent_embeddings_shape.weight_mu',
+          'latent_embeddings_shape.weight_logvar',
+            'latent_embeddings_color.weight_mu',
+              'latent_embeddings_color.weight_logvar
+        """
         self.load_state_dict(ckpt["trainer_state_dict"], strict=False)
+        print(ckpt["trainer_state_dict"]["latent_embeddings_shape.weight_mu"].shape)
+        # torch.save(ckpt["trainer_state_dict"],"output/model_state.pkt")
         self.sid2idx = ckpt["shapeid2idx"]
-        # print(self.sid2idx)
+
+"""
+
+VADLogVar.weight_mu = pretrained_model[trainer_state_dict.latent_embeddings_shape.weight_mu]
+ [3194, 128]
+
+shape id => index
+
+retrieve z from VADLogVar.weight_mu[index] => [1,128]
+
+
+
+"""

@@ -18,7 +18,7 @@ else
 endif
 
 edit_via_scribble:
-	python edit_via_scribble.py ./config/airplane_demo.yaml --imagename c8dcaeda94da8da962b600da24e0965 --partid 0 --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output/edit_via_scribble --source_dir examples/edit_via_scribble/source/308b76aac4b518a43eb67d9fb75cc878 --epoch 5 --trial 1 --category airplane
+	python edit3d/edit_via_scribble.py ./config/chair_demo.yaml --imagename 308b76aac4b518a43eb67d9fb75cc878 --partid 0 --pretrained data/models/chairs_epoch_2799_iters_280000.pth --outdir output/edit_via_scribble --source_dir examples/edit_via_scribble/source --epoch 5 --trial 1 --category chair
 
 edit_via_sketch:
 	python edit_via_sketch.py ./config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output/edit_via_sketch --source_dir examples/edit_via_sketch/planes/2e235eafe787ad029a6e43b878d5b335 --epoch 5 --trial 1 --category airplane
