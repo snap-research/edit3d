@@ -1,15 +1,21 @@
+import argparse
+import importlib
 import os
+
+import cv2
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-from PIL import Image
-from edit3d.models import deep_sdf
-import argparse
 import yaml
-import importlib
-import cv2
-from edit3d import device, logger
+from PIL import Image
+
+from edit3d import device
+from edit3d.models import deep_sdf
 from edit3d.utils.utils import dict2namespace
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def save(trainer, latents, target, mask, outdir, imname):
     colormesh_filename = os.path.join(outdir, imname)

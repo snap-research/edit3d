@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import logging
 import os
 
 import cv2
@@ -10,10 +11,12 @@ import yaml
 from PIL import Image
 
 import edit3d
-from edit3d import device, logger
+from edit3d import device
 from edit3d.models import deep_sdf
 from edit3d.utils.utils import dict2namespace
 from reconstruct_from_rgb import head_tail
+
+logger = logging.getLogger(__name__)
 
 
 def save(trainer, latent, target, mask, outdir, imname, batch_size):

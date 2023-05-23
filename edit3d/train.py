@@ -12,9 +12,11 @@ import torchvision
 import yaml
 from tensorboardX import SummaryWriter
 
-from edit3d import device, logger
+from edit3d import device
 from edit3d.utils.utils import dict2namespace
+import logging
 
+logger = logging.getLogger(__name__)
 
 def main(args, cfg):
     torch.backends.cudnn.benchmark = True
@@ -51,13 +53,15 @@ def main(args, cfg):
 
     # Main training loop
     prev_time = time.time()
-    logger.info("[Train] Start epoch: %d End epoch: %d" % (start_epoch, cfg.trainer.epochs))
+    logger.info("Start epoch: %d End epoch: %d" % (start_epoch, cfg.trainer.epochs))
     step_cnt = 0
     for epoch in range(start_epoch, cfg.trainer.epochs):
-
+        logger.debug("Epoch: %d" % epoch)
         trainer.epoch_start(epoch)
+
         # train for one epoch
         for bidx, data in enumerate(train_loader):
+
             step_cnt = bidx + len(train_loader) * epoch + 1
 
             # print("load data time: {:0.5f}".format(time.time() - prev_load_data))
@@ -99,28 +103,28 @@ def main(args, cfg):
                     for k, v in logs_info.items():
                         writer.add_scalar(k, v, step_cnt)
 
-        # Save checkpoints
-        if (epoch + 1) % int(cfg.viz.save_interval) == 0:
-            # visualize the generated sketchs
-            im_data = trainer.sample_images(data)
-            grid_gt = torchvision.utils.make_grid(im_data["gt_sketch"])
-            grid_sample = torchvision.utils.make_grid(im_data["gen_sketch"])
-            writer.add_image("sketch_gts", grid_gt, step_cnt)
-            writer.add_image("sketch_samples", grid_sample, step_cnt)
+            # Save checkpoints
+            if (epoch + 1) % int(cfg.viz.save_interval) == 0:
+                # visualize the generated sketchs
+                im_data = trainer.sample_images(data)
+                grid_gt = torchvision.utils.make_grid(im_data["gt_sketch"])
+                grid_sample = torchvision.utils.make_grid(im_data["gen_sketch"])
+                writer.add_image("sketch_gts", grid_gt, step_cnt)
+                writer.add_image("sketch_samples", grid_sample, step_cnt)
 
-            grid_gt = torchvision.utils.make_grid(im_data["gt_color"])
-            grid_sample = torchvision.utils.make_grid(im_data["gen_color"])
-            writer.add_image("color_gts", grid_gt, step_cnt)
-            writer.add_image("color_samples", grid_sample, step_cnt)
+                grid_gt = torchvision.utils.make_grid(im_data["gt_color"])
+                grid_sample = torchvision.utils.make_grid(im_data["gen_color"])
+                writer.add_image("color_gts", grid_gt, step_cnt)
+                writer.add_image("color_samples", grid_sample, step_cnt)
 
-            # visualize the generated sdf
-            im_data = trainer.sample_images(data)
-            renders = torch.from_numpy(np.array(im_data["render_sdf"])).permute(0, 3, 1, 2)
-            grid_sample = torchvision.utils.make_grid(renders)
-            writer.add_image("render_samples", grid_sample, step_cnt)
+                # visualize the generated sdf
+                im_data = trainer.sample_images(data)
+                renders = torch.from_numpy(np.array(im_data["render_sdf"])).permute(0, 3, 1, 2)
+                grid_sample = torchvision.utils.make_grid(renders)
+                writer.add_image("render_samples", grid_sample, step_cnt)
 
-            # checkpoints
-            trainer.save(epoch=epoch, step=step_cnt)
+                # checkpoints
+                trainer.save(epoch=epoch, step=step_cnt)
 
         trainer.epoch_end(epoch, writer=writer)
 

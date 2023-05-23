@@ -1,9 +1,11 @@
 import os
 
-from edit3d.PinMemDict import PinMemDict
+import logging
+
 from edit3d.loaders.NPYLoaderN import NPYLoaderN
 from edit3d.samplers.SequentialWarpSampler import SequentialWarpSampler
 from edit3d.samplers.ShuffleWarpSampler import ShuffleWarpSampler
+from edit3d.utils.PinMemDict import PinMemDict
 
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -16,18 +18,10 @@ torch.set_num_threads(1)
 import numpy as np
 from torch.utils.data import Dataset
 import json
-import logging
-
-log_level = os.getenv("LOG_LEVEL", "INFO")
-logging.basicConfig(level=logging.getLevelName(log_level))
-
 logger = logging.getLogger(__name__)
-CUDA_DEVICE = "cuda:0"
-
-device = torch.device(CUDA_DEVICE if torch.cuda.is_available() and os.getenv("USE_GPU") else "cpu")
 
 
-def init_np_seed():
+def init_np_seed(_):
     torch.set_num_threads(1)
     seed = torch.initial_seed()
     np.random.seed(seed % 4294967296)  # numpy seed must be between 0 and 2**32-1
@@ -41,16 +35,19 @@ def np_collate(batch):
 def np_collate_dict(batch):
     b_out = {}
     for k in batch[0].keys():
-        c = []
-        for b in batch:
-            c.append(b[k])
-        if type(c[0]) is np.ndarray:
-            c = torch.from_numpy(np.stack(c, axis=0))
-        elif type(c[0]) is torch.Tensor:
-            c = torch.stack(c, dim=0)
-        else:
-            pass
-        b_out[k] = c
+        try:
+            c = []
+            for b in batch:
+                c.append(b[k])
+            if type(c[0]) is np.ndarray:
+                c = torch.from_numpy(np.stack(c, axis=0))
+            elif type(c[0]) is torch.Tensor:
+                c = torch.stack(c, dim=0)
+            else:
+                pass
+            b_out[k] = c
+        except ValueError as ve:
+            logger.error(ve)
     return PinMemDict(b_out)
 
 
@@ -78,14 +75,17 @@ def get_data_loaders(args):
         for im_name in im_list:
             if im_name.name in sphere_list:
                 # im_path[im_name.name] = os.path.join(args.sdf_data_dir.sketch, im_name.name, "sketch-F-2.png")
-                im_path[im_name.name] = os.path.join(args.sdf_data_dir.sketch, im_name.name, args.sketch_name)
+                im_path[im_name.name] = os.path.join(args.sdf_data_dir.sketch, im_name.name, f"{im_name.name}_000.png")
+                if hasattr(args, "sketch_name"):
+                    im_path[im_name.name] = os.path.join(args.sdf_data_dir.sketch, im_name.name, args.sketch_name)
+
 
     # load color data
     color2d_path = {}
     with os.scandir(args.sdf_data_dir.color) as im_list:
         for im_name in im_list:
             if im_name.name in sphere_list:
-                color2d_path[im_name.name] = os.path.join(args.sdf_data_dir.color, im_name.name, "render_r_000.png")
+                color2d_path[im_name.name] = os.path.join(args.sdf_data_dir.sketch, im_name.name, f"{im_name.name}_000.png")
 
     with os.scandir(args.sdf_data_dir.surface) as npy_list:
         for npy_path in npy_list:

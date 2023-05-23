@@ -3,8 +3,9 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms as transforms
 
-from edit3d.multimodal import logger
+import logging
 
+logger = logging.getLogger(__name__)
 
 class NPYLoaderN(Dataset):
     def __init__(
@@ -44,33 +45,38 @@ class NPYLoaderN(Dataset):
         # Surface samples
         data = np.load(surface_file, mmap_mode="r")
         num_samples = data.shape[0]
-        subset_idx_inside = np.random.choice(num_samples // 2, num_inside_points, replace=True)
-        subset_idx_outside = np.random.choice(num_samples // 2, num_outside_points, replace=True) + num_samples // 2
-        subset_idx = np.concatenate([subset_idx_inside, subset_idx_outside])
-        data_sur = data[subset_idx, :]  # xyzd + RGB
+        data_sur = np.array([[]])
+        if num_samples:
+            subset_idx_inside = np.random.choice(num_samples // 2, num_inside_points, replace=True)
+            subset_idx_outside = np.random.choice(num_samples // 2, num_outside_points, replace=True) + num_samples // 2
+            subset_idx = np.concatenate([subset_idx_inside, subset_idx_outside])
+            data_sur = data[subset_idx, :]  # xyzd + RGB
         # Sphere samples
         data = np.load(sphere_file, mmap_mode="r")
         num_samples = data.shape[0]
-        subset_idx = np.random.choice(num_samples, num_sphere_points, replace=True)
-        data_sph = data[subset_idx, :]  # xyzd + RGB (-1, -1, -1)
+        data_sph = np.array([[]])
+        if num_samples:
+            num_samples = data.shape[0]
+            subset_idx = np.random.choice(num_samples, num_sphere_points, replace=True)
+            data_sph = data[subset_idx, :]  # xyzd + RGB (-1, -1, -1)
         # combine
         data_f = np.concatenate([data_sur, data_sph], axis=0)
-        data_c = np.array([])
 
         # sketch samples
         data_im = Image.open(sketch_file)
         data_im = self.transform(data_im)  # N*C*H*W
+        data_im = data_im.mean(dim=0).round().unsqueeze(0)  # C is binary black or white.
 
         # color image samples
         data_color = Image.open(color2d_file)
-        data_color = self.transform(data_color)  # N*C*H*W
+        data_color = self.transform(data_color)[0:3]  # N*C*H*W  no alpha channel
 
-        idx_t = np.array([idx], dtype=np.long)
+        idx_t = np.array([idx], dtype=np.longlong)
 
         # the data_f contains xyz+d+rgb
         return {
             "surface_samples": data_f,
-            "sphere_samples": data_c,
+            # "sphere_samples": np.array([]),
             "sketch": data_im,
             "color_2d": data_color,
             "shape_indices": idx_t,

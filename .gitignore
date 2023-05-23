@@ -5,3 +5,5 @@ images
 output
 data
 *.egg-info
+git clone https://github.com/stevenlovegrove/pangolin
+pangolin

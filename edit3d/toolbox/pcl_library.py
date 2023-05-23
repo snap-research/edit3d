@@ -52,6 +52,8 @@ def mesh2pcl_color(triangle_collection, triangle_color_collection, numpoints):
     total_area = np.sum(area_collection)
 
     print("Triangle count: {}".format(triangle_collection.shape[0]))
+    # if triangle_collection.shape[1] == 4:
+    #     triangle_color_collection = triangle_color_collection[:, 0:3]
     # print("Total surface area: {}".format(total_area))
 
     area_collection /= total_area
@@ -66,12 +68,12 @@ def mesh2pcl_color(triangle_collection, triangle_color_collection, numpoints):
     rand_uv[oob_idx, :] = -rand_uv[oob_idx, :] + 1.0
 
     sampled_triangle_collection = triangle_collection[sampled_triangles, :, :]
-    sampled_triangle_color_collection = triangle_color_collection[sampled_triangles, :, :]
+    sampled_triangle_color_collection = triangle_color_collection[sampled_triangles, :]
     sampled_points = (
         rand_uv[:, [0]] * (sampled_triangle_collection[:, 1, :3] - sampled_triangle_collection[:, 0, :3])
         + rand_uv[:, [1]] * (sampled_triangle_collection[:, 2, :3] - sampled_triangle_collection[:, 0, :3])
         + sampled_triangle_collection[:, 0, :3]
     )
-    sampled_points_color = sampled_triangle_color_collection[:, 0, :]
+    # sampled_points_color = sampled_triangle_color_collection[:, 0, :]
 
-    return sampled_points.astype(np.float32), sampled_points_color.astype(np.float32)
+    return sampled_points.astype(np.float32), sampled_triangle_color_collection.astype(np.float32)

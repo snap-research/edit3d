@@ -1,8 +1,10 @@
+import logging
 import torch
 from torch.utils.data import Sampler
 
-from edit3d.multimodal import logger
 
+
+logger = logging.getLogger(__name__)
 
 class ShuffleWarpSampler(Sampler):
     def __init__(self, data_source, n_repeats=5):

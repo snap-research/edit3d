@@ -1,6 +1,7 @@
 import argparse
 import glob
 import importlib
+import logging
 import os
 import time
 
@@ -11,9 +12,11 @@ import torchvision.transforms as transforms
 import yaml
 from PIL import Image
 
-from edit3d import device, logger
+from edit3d import device
 from edit3d.models import deep_sdf
 from edit3d.utils.utils import dict2namespace
+
+logger = logging.getLogger(__name__)
 
 
 def save(trainer, latent, target, outdir, imname, save_ply=False):

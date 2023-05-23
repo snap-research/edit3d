@@ -10,8 +10,11 @@ import plyfile
 import skimage.measure
 import torch
 
-from edit3d import CUDA_DEVICE, logger
+from edit3d import CUDA_DEVICE
 from edit3d.models import deep_sdf
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_mesh(
