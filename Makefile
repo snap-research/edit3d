@@ -18,16 +18,16 @@ else
 endif
 
 edit_via_scribble:
-	python edit3d/edit_via_sketch.py ./config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output/edit_via_scribble --source_dir examples/edit_via_scribble/source/308b76aac4b518a43eb67d9fb75cc878 --epoch 5 --trial 1 --category airplane
+	python edit3d/edit_via_scribble.py ./config/chair_demo.yaml --imagenum 1 --partid 1
 
 edit_via_sketch:
-	python edit3d/edit_via_sketch.py ./config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output/edit_via_sketch --source_dir examples/edit_via_sketch/planes/2e235eafe787ad029a6e43b878d5b335 --epoch 5 --trial 1 --category airplane
+	python edit_via_sketch.py ./config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output/edit_via_sketch --source_dir examples/edit_via_sketch/planes/2e235eafe787ad029a6e43b878d5b335 --epoch 5 --trial 1 --category airplane
 
 reconstruct_sketch:
-	python edit3d/reconstruct_from_sketch.py config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output/recon_sketch --impath examples/recon_sketch/airplanes/d54ca25127a15d2b937ae00fead8910d/sketch-T-2.png --mask  --mask-level 0.5
+	python reconstruct_from_sketch.py config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output/recon_sketch --impath examples/recon_sketch/airplanes/d54ca25127a15d2b937ae00fead8910d/sketch-T-2.png --mask  --mask-level 0.5
 
 reconstruct_rgb:
 	python edit3d/reconstruct_from_rgb.py config/airplane_demo.yaml --pretrained=data/models/airplanes_epoch_2799_iters_156800.pth --outdir output/recon_rgb --impath examples/recon_sketch/airplanes/d54ca25127a15d2b937ae00fead8910d/sketch-T-2.png --mask  --mask-level 0.5
 
 train_plane:
-	python edit3d/train.py config/airplane_train.yaml
+	python train.py config/airplane_train.yaml

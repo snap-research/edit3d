@@ -15,7 +15,8 @@ from edit3d import device
 from edit3d.models import deep_sdf
 from edit3d.utils.utils import dict2namespace
 
-
+import datetime
+import random
 # arguments: color -- the random sampled color for diferent scribbles
 def save(
     trainer,
@@ -27,7 +28,7 @@ def save(
     color,
     outdir,
     imname,
-    save_ply=True,
+    save_ply=False,
 ):
     colormesh_filename = os.path.join(outdir, imname)
     # latent_filename = os.path.join(outdir, imname + '.pth')
@@ -39,7 +40,10 @@ def save(
     # color_filename = os.path.join(outdir, imname + '_color.npy')
     #  np.save(color_filename, color)
     # masked_target_filename = os.path.join(outdir, imname + '_masked_target.png')
-    shape_code, color_code = latent
+    # print(latent)
+    shape_code, color_code = latent 
+    # shape and color latent codes are both of dimension 128 
+    
     if save_ply:
         with torch.no_grad():
             deep_sdf.colormesh.create_mesh(
@@ -51,8 +55,10 @@ def save(
                 N=256,
                 max_batch=int(2 ** 18),
             )
+            
+    resolution=64
     # torch.save(latent, latent_filename)
-    pred_3D = trainer.render_express(shape_code, color_code, resolution=512)
+    pred_3D = trainer.render_express(shape_code, color_code, resolution=resolution)
     pred_3D = cv2.cvtColor(pred_3D, cv2.COLOR_RGB2BGR)
     cv2.imwrite(pred_3D_filename, pred_3D)
     # pred_rgb = trainer.render_color2d(color_code, shape_code)
@@ -65,21 +71,23 @@ def save(
     #    save_image(np.moveaxis((mask*target).squeeze().cpu().numpy(),0,-1),masked_target_filename)
 
 
-def save_init(trainer, latent, outdir, imname):
+def save_init(trainer, latent, outdir, imname,save_ply=False):
     colormesh_filename = os.path.join(outdir, imname)
     pred_3D_filename = os.path.join(outdir, imname + "_3D.png")
     shape_code, color_code = latent
+    resolution=128
     with torch.no_grad():
-        deep_sdf.colormesh.create_mesh(
-            trainer.deepsdf_net,
-            trainer.colorsdf_net,
-            shape_code,
-            color_code,
-            colormesh_filename,
-            N=256,
-            max_batch=int(2 ** 18),
-        )
-    pred_3D = trainer.render_express(shape_code, color_code, resolution=512)
+        if save_ply:
+            deep_sdf.colormesh.create_mesh(
+                trainer.deepsdf_net,
+                trainer.colorsdf_net,
+                shape_code,
+                color_code,
+                colormesh_filename,
+                N=256,
+                max_batch=int(2 ** 18),device=device
+            )
+    pred_3D = trainer.render_express(shape_code, color_code, resolution=resolution)
     pred_3D = cv2.cvtColor(pred_3D, cv2.COLOR_RGB2BGR)
     cv2.imwrite(pred_3D_filename, pred_3D)
 
@@ -132,7 +140,10 @@ def reconstruct(trainer, target, mask, epoch, trial, gamma, beta):
     return best_latent
 
 
-def edit(trainer, init_latent, target, mask, epoch, trial, gamma, beta):
+def edit(trainer, init_latent, target, mask, epoch=101, trial=1):
+    """
+    target: scribbles
+    """
     min_loss = np.inf
     init_shape, init_color = init_latent
     temp_shape, temp_color = trainer.get_known_latent(0)
@@ -144,10 +155,12 @@ def edit(trainer, init_latent, target, mask, epoch, trial, gamma, beta):
             init_color,
             target,
             mask=mask,
-            epoch=epoch,
-            gamma=gamma,
-            beta=beta,
+            epoch=epoch
         )
+        print("loss:"+str(loss.data))
+        ##gamma=0.02,
+        #beta=0.5,
+
         if min_loss > loss:
             best_latent = latent[-1]
             min_loss = loss
@@ -158,9 +171,10 @@ def edit(trainer, init_latent, target, mask, epoch, trial, gamma, beta):
 
 
 
-def load_image_and_scribble(source_path, target_path, part_list, use_target=True):
-
+def load_image_and_scribble(source_path, target_path, part_list, use_target=True,colorcomb=0):
+    print(source_path)
     imagelist = glob.glob(os.path.join(source_path, "*Layer-*.png"))
+    # print(imagelist)
     if len(imagelist) == 0:
         return None
     masks = []
@@ -168,11 +182,22 @@ def load_image_and_scribble(source_path, target_path, part_list, use_target=True
         for impath in imagelist:
             if f"Layer-{part}" in impath:  # layer1 means the orig image
                 im = cv2.resize(cv2.imread(impath), (128, 128))[:, :, 0]
+                # print(im)
+                # print(np.unique(im))
                 bg_value = np.max(im)
                 masks.append((im != bg_value).astype(int))
                 break
     if len(masks) == 0:
         return None
+    bgrs = np.random.rand(len(masks), 3)
+    if colorcomb==1: # blue+lime
+        bgrs=[[0.9,0.2,0.2],[0.2,0.2,0.9]]
+    elif colorcomb==2:#red+blue
+        bgrs=[[0.2,0.2,0.9],[0.2,0.9,0.2]]
+    elif colorcomb==3:#magenta+lightblue
+        bgrs=[[0.8,0.1,0.8],[0.1,0.8,0.8]]
+    # 
+    # 
 
     # get a higher resolutional scribble for paper visualization
     masks2 = []
@@ -187,7 +212,9 @@ def load_image_and_scribble(source_path, target_path, part_list, use_target=True
     # load source and target image
     source_image = os.path.join(source_path, "render_r_000.png")
     source_im = load_image(source_image)
-    bgrs = np.random.rand(len(masks), 3)
+    print(source_im.shape)
+    
+
     if use_target:  # color source is the reference image
         target_image = os.path.join(target_path, "render_r_000.png")
         target_im = load_image(target_image)
@@ -216,6 +243,7 @@ def load_image_and_scribble(source_path, target_path, part_list, use_target=True
 
     mask_im = torch.from_numpy((np.sum(np.array(masks), axis=0) > 0).astype(int))
 
+    # return source_im,target_im,scribble,mask_im,scribble2,
     return {
         "source": source_im,
         "target": target_im,
@@ -227,74 +255,136 @@ def load_image_and_scribble(source_path, target_path, part_list, use_target=True
 
 
 def main(args, cfg):
-    torch.backends.cudnn.benchmark = True
-    device = torch.device("cuda:0")
+    # torch.backends.cudnn.benchmark = True
+    # device = torch.device("cuda:0")
     trainer_lib = importlib.import_module(cfg.trainer.type)
     trainer = trainer_lib.Trainer(cfg, args, device)
-    trainer.resume_demo(args.pretrained)
+    part_list=[]
+
+    imagenum=args.imagenum
+
+
+    if imagenum==1:
+        imagename="308b76aac4b518a43eb67d9fb75cc878"
+        category="chair"
+    elif imagenum==2:
+        imagename="1013f70851210a618f2e765c4a8ed3d"
+        category="chair"
+    elif imagenum==3:
+        imagename="10aa040f470500c6a66ef8df4909ded9"
+        category="airplane"
+    else:
+        imagename="10cfc2090a2ade124c3a35cee92bb95b"
+        category="airplane"
+
+    partid=args.partid
+    pretrained="data/models/chairs_epoch_2799_iters_280000.pth"
+    if category=="chair":
+        
+        if partid==1:
+            part_list=[3]
+        if partid==2:
+            part_list=[2,3]
+        if partid==3:
+            part_list=[3,4]
+    elif category=="airplane":
+        pretrained="data/models/airplanes_epoch_2799_iters_156800.pth"
+        if partid==1:
+            part_list=[2]
+        if partid==2:
+            part_list=[2,3]
+
+    #shared args  ===============================
+    source_dir="examples/edit_via_scribble/source"
+    outdir="output/edit_via_scribble/out/"
+    # outdir="output/edit_via_scribble/out-part"+str(args.partid)+category+"_"+str(datetime.datetime.now() ).replace(" ","_").replace(":","_")
+    trial=3
+    save_initial=False
+    #==============================
+
+    trainer.resume_demo(pretrained)
     idx2sid = {}
     for k, v in trainer.sid2idx.items():
         idx2sid[v] = k
     trainer.eval()
-    source_dir = os.path.join(args.source_dir, "source")
-    target_dir = os.path.join(args.source_dir, "target")
-
-    os.makedirs(args.outdir, exist_ok=True)
-
+    # source_dir = os.path.join(args.source_dir, "source")
+    # source_dir=args.source_dir
+    target_dir = os.path.join(source_dir, "target")
+    # print(source_dir)
+    # print(args.partid)
+    partid=args.partid
+    os.makedirs(outdir, exist_ok=True)
+    """
     # part_list: the id indicates the semantic parts
-    if args.category == "airplane":
-        if args.partid == 0:
-            part_list = [2, 3]  # body and left wing
-        elif args.partid == 1:
-            part_list = [2, 3, 4]  # body
-        elif args.partid == 2:
-            part_list = [3]  # left wing
-
-    elif args.category == "chair":
-        if args.partid == 0:
+    if category == "airplane" and len(part_list)==0:
+        if partid == 0:
+            part_list = [4]  # back wing
+        elif partid == 1:
+            part_list = [3]  # main wing
+        elif partid == 2:
+            part_list = [2]  # body
+    elif category == "chair" and len(part_list)==0:
+        if partid == 0:
             part_list = [2, 3, 4, 6]  # seat, back, left leg, left arm
-        elif args.partid == 1:
+        elif partid == 1:
             part_list = [2, 3]  # seat, back
-        elif args.partid == 2:
+        elif partid == 2:
             part_list = [2, 4]  # seat, left leg
-        elif args.partid == 3:
+        elif partid == 3:
             part_list = [2, 6]  # seat, left arm
-        elif args.partid == 4:
+        elif partid == 4:
             part_list = [2]  # seat
+    elif len(part_list)>0: pass
     else:
         print("No such category")
         exit()
-
+"""
     # edit known shapes (i.e. shapes from the training dataset)
-    imname = args.imagename
+    imname = imagename
     source_path = os.path.join(source_dir, imname)
-    targetdir = os.path.join(args.outdir, imname)
+    targetdir = os.path.join(outdir, imname)
     os.makedirs(targetdir, exist_ok=True)
     target_path = os.path.join(target_dir, imname)
     print("Edit 3D from %s ..." % imname)
-    source_latent = trainer.get_known_latent(trainer.sid2idx[imname])
+    
 
+    
     # save init
     initdir = os.path.join(targetdir, "init")
     os.makedirs(initdir, exist_ok=True)
-    save_init(trainer, source_latent, initdir, imname)
+    if save_initial:
+        source_latent = trainer.get_known_latent(trainer.sid2idx[imname])
+        save_init(trainer, source_latent, initdir, imname)
 
     # randomize the color of scribbles
     randdir = os.path.join(targetdir, "rand")
     os.makedirs(randdir, exist_ok=True)
-    for k in range(30):
-        data = load_image_and_scribble(source_path, target_path, part_list, use_target=False)
+    
+    imname_out=imname + str(datetime.datetime.now() ).replace(" ","_").replace(":","_")
+    # print(part_list)
+    # images=list(trainer.sid2idx.keys())
+    # print(trainer.sid2idx.keys())
+    
+    for k in range(trial):
+        print(k)
+        # for im in trainer.sid2idx.keys():
+            # part_list=random.choice([[2],[2,3],[2,4],[3],[4]])
+        data = load_image_and_scribble(source_path, target_path, part_list,colorcomb=args.colors, use_target=False)
         source_latent = trainer.get_known_latent(trainer.sid2idx[imname])
+        print("latentshape")
+        print(source_latent[0].shape)
+        print(data["scribble"].shape) # torch.Size([3, 128, 128])
+        print(data["mask"].shape) # torch.Size([128, 128])
+        # np.broadcast_to
+        # save_image(data["scribble"].reshape((128,128,3)),"scribble.png")
+        # save_image(data["mask"].reshape((128,128,1)).broadcast_to((128,128,3)),"mask.png")
         edit_latent = edit(
             trainer,
             source_latent,
             data["scribble"],
             data["mask"],
-            args.epoch,
-            args.trial,
-            args.gamma,
-            args.beta,
         )
+        # print(data["target"].shape)
         save(
             trainer,
             edit_latent,
@@ -303,9 +393,9 @@ def main(args, cfg):
             data["scribble2"],
             data["mask"],
             data["color"],
-            randdir,
-            imname + f"_{k}",
-            save_ply=True,
+            outdir,
+            imname_out + f"_{k}",
+            save_ply=args.save_mesh,
         )
 
 
@@ -325,12 +415,31 @@ if __name__ == "__main__":
     parser.add_argument("--beta", default=0.5, type=float)
     parser.add_argument("--epoch", default=1001, type=int)
     parser.add_argument("--trial", default=20, type=int)
-    parser.add_argument("--partid", default=4, type=int)
+
+    #modified arguments==========================================================
+    parser.add_argument("--partid", default=1, type=int)
+    """
+    partid
+    for chairs:
+        1: seat
+        2: seat+arm
+        3: seat+back
+
+    for airplane:
+        1: body only
+        2: body+wings
+    """
+    parser.add_argument("--save_mesh", default=False, help="saves mesh file for result")
+
+    parser.add_argument("--imagenum", default=1, type=int, help="1: chair, 2: couch chair, 3,4: airplanes")
+    parser.add_argument("--colors", default=0, type=int, help="0:random, 1:blue+lime, 2:red+blue, 3:magenta+lightblue ")
+    #==========================================================
+
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
-    args, cfg = dict2namespace(config)
+    config = dict2namespace(config)
 
-    main(args, cfg)
+    main(args, config)
